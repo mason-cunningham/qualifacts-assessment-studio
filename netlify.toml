@@ -1,0 +1,30 @@
+# One Netlify site serves everything:
+#   https://<site>/{slug}   → public assessments
+#   https://<site>/studio   → internal Studio (login required)
+# Routing rules live in dist/_redirects (written by scripts/assemble.mjs).
+# Publishing an assessment is a database write. No deploy is needed. This file only
+# matters when the CODE changes (auto-deploys from GitHub).
+
+[build]
+  command = "npm ci && npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+[[headers]]
+  for = "/studio/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Robots-Tag = "noindex, nofollow"
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"

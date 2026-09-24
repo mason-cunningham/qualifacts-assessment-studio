@@ -2,8 +2,12 @@ import { parseDefinition, slugify, type AssessmentDefinition } from '@qq/schema'
 import { supabase, T } from './supabase';
 import type { AssessmentRow } from './types';
 
+/** Paths used by the site itself, so they can't be assessment links. Keep in sync with supabase/schema.sql. */
+export const RESERVED_SLUGS = ['studio', 'assets', 'api', 'admin', 'favicon', 'index'];
+
 export async function uniqueSlug(base: string): Promise<string> {
-  const root = slugify(base) || 'assessment';
+  let root = slugify(base) || 'assessment';
+  if (RESERVED_SLUGS.includes(root)) root = `${root}-assessment`;
   const { data } = await supabase.from(T.assessments).select('slug').like('slug', `${root}%`);
   const taken = new Set((data ?? []).map((r: { slug: string }) => r.slug));
   if (!taken.has(root)) return root;
@@ -12,6 +16,7 @@ export async function uniqueSlug(base: string): Promise<string> {
 }
 
 export async function isSlugAvailable(slug: string, exceptId?: string): Promise<boolean> {
+  if (RESERVED_SLUGS.includes(slug)) return false;
   let q = supabase.from(T.assessments).select('id').eq('slug', slug);
   if (exceptId) q = q.neq('id', exceptId);
   const { data } = await q;
@@ -20,6 +25,7 @@ export async function isSlugAvailable(slug: string, exceptId?: string): Promise<
 
 export async function createAssessment(def: AssessmentDefinition, opts: { slug?: string; internalName?: string } = {}): Promise<AssessmentRow> {
   const slug = opts.slug ? slugify(opts.slug) : await uniqueSlug(def.meta.title);
+  if (RESERVED_SLUGS.includes(slug)) throw new Error(`"${slug}" is reserved by the site. Choose another link.`);
   const { data, error } = await supabase
     .from(T.assessments)
     .insert({

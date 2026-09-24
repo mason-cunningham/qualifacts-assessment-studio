@@ -36,7 +36,7 @@ export function LoginPage() {
         const { data, error } = await supabase.auth.signUp({
           email: addr,
           password,
-          options: { data: { full_name: fullName.trim() }, emailRedirectTo: window.location.origin },
+          options: { data: { full_name: fullName.trim() }, emailRedirectTo: window.location.origin + import.meta.env.BASE_URL },
         });
         if (error) throw error;
         if (!data.session) {

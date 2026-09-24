@@ -2,10 +2,14 @@
 
 The Qualifacts team uses this platform to create, publish, and report on branded customer and prospect assessments.
 
-| App | What it is | URL (until DNS exists) |
+**One site, one domain.** Every assessment is a folder on it:
+
+| Path | What it is | Source |
 |---|---|---|
-| **Studio** (`apps/studio`) | Internal tool: dashboard, editor, responses, exports, solutions library, users | `https://qualifacts-assess-studio.netlify.app` |
-| **Runner** (`apps/runner`) | Public assessments at `/{slug}` | `https://qualifacts-assess.netlify.app/{slug}` |
+| `https://qualifacts-assess.netlify.app/{slug}` | Public assessments (one per slug) | `apps/runner` |
+| `https://qualifacts-assess.netlify.app/studio` | Internal Studio: dashboard, editor, responses, exports, library, users | `apps/studio` |
+
+Later, `assess.qualifacts.com` replaces the netlify.app address. Creating or publishing an assessment never creates a new site or needs a deploy.
 
 Shared packages:
 
@@ -32,7 +36,7 @@ It's **non-destructive**:
 Go to Dashboard → **Authentication**:
 - **Sign In / Providers → Email:** enabled.
 - **Confirm email: OFF for now.** Supabase's built-in mailer only delivers to members of your Supabase team, so confirmation emails wouldn't reach coworkers. This is safe because new accounts start *pending*: an admin must approve them in Studio → Users.
-- **URL Configuration:** set the Site URL to the Studio URL. Add `http://localhost:5173` and the Studio URL to Redirect URLs.
+- **URL Configuration:** set the Site URL to `https://<site>/studio`. Add `http://localhost:5173/studio` and the live Studio URL to Redirect URLs.
 
 ### 3. Become the first admin
 Open Studio and create an account with your @qualifacts.com email. **The first person to sign up becomes an active admin automatically.** Everyone after that shows up under Users → "Waiting for approval".
@@ -45,25 +49,33 @@ Go to Dashboard → **Edge Functions** → Deploy a new function, then:
 
 No CLI is needed. `process-outbox` isn't needed yet (see "Email alerts" below).
 
-### 5. Build and deploy (Node.js 20+; tested on Node 26)
+### 5. Deploy (one time): GitHub → Netlify
+1. Push this repo to a private GitHub repository.
+2. In Netlify: **Add new site → Import an existing project → GitHub** and pick the repo.
+   - Build settings come from `netlify.toml`: `npm ci && npm run build`, publish `dist`, Node 22.
+   - Public build values come from `.env.production`, so no Netlify environment variables are needed.
+3. **Site configuration → Change site name** to `qualifacts-assess`, or another available name.
+4. If the name isn't `qualifacts-assess`:
+   - Update `VITE_PUBLIC_BASE_URL` in `.env.production` and push.
+   - Run this in the Supabase SQL editor (`q-quiz-config` overrides the env var in Studio):
+     ```sql
+     update "q-quiz-config" set value = '"https://<site>.netlify.app"' where key = 'public_base_url';
+     ```
+
+After that, every push to `main` redeploys automatically. **Publishing assessments never needs a deploy.** Only code changes do.
+
+`npm run build` builds both apps, and `scripts/assemble.mjs` combines them into `dist/`:
+- the assessments at `/`
+- Studio at `/studio`
+- `_redirects` with the routing rules
+
+### Local development (Node.js 20+; tested on Node 26)
 ```
-copy .env.example .env        # values are pre-filled for the Qualifacts project
 npm install
 npm test                      # engine tests: all 4 legacy assessments must score identically
-npm run build                 # builds apps/runner/dist and apps/studio/dist
-```
-Then deploy on Netlify:
-- Create a site named **qualifacts-assess** and drag `apps/runner/dist` onto it.
-- Create a site named **qualifacts-assess-studio** and drag `apps/studio/dist` onto it.
-
-Each `dist` includes a `_redirects` file, so `/{slug}` routes work.
-
-Once Git and GitHub are available, connect the repo instead. Each app has a `netlify.toml`: set the base directory to the repo root and use that app's toml.
-
-### Local development
-```
-npm run dev:studio            # http://localhost:5173
+npm run dev:studio            # http://localhost:5173/studio
 npm run dev:runner            # http://localhost:5174/{slug}
+npm run check:db              # read-only security checks against the live database
 ```
 
 ---
@@ -82,8 +94,8 @@ npm run dev:runner            # http://localhost:5174/{slug}
 ---
 
 ## Going live on assess.qualifacts.com later
-1. IT adds a CNAME for `assess.qualifacts.com` pointing to the runner Netlify site. Set it as the primary domain in Netlify.
-2. Update `.env` `VITE_PUBLIC_BASE_URL` and rebuild Studio, **and** run:
+1. IT adds one CNAME: `assess.qualifacts.com` → the Netlify site. Set it as the primary domain in Netlify. Studio then lives at `assess.qualifacts.com/studio`.
+2. Update `VITE_PUBLIC_BASE_URL` in `.env.production` and push, **and** run:
    ```sql
    update "q-quiz-config" set value = '"https://assess.qualifacts.com"' where key = 'public_base_url';
    ```

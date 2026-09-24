@@ -9,7 +9,8 @@
   "scripts": {
     "dev:studio": "npm run dev -w @qq/studio",
     "dev:runner": "npm run dev -w @qq/runner",
-    "build": "npm run build -w @qq/runner && npm run build -w @qq/studio",
+    "build": "npm run build -w @qq/runner && npm run build -w @qq/studio && node scripts/assemble.mjs",
+    "check:db": "node scripts/check-db.mjs",
     "build:runner": "npm run build -w @qq/runner",
     "build:studio": "npm run build -w @qq/studio",
     "test": "vitest run",

@@ -108,6 +108,14 @@ create table if not exists public."q-quiz-assessments" (
 );
 create index if not exists q_quiz_assessments_status_idx on public."q-quiz-assessments" (status);
 
+-- Site paths that can't be assessment links (Studio lives at /studio on the same site)
+do $$ begin
+  alter table public."q-quiz-assessments"
+    add constraint q_quiz_assessments_slug_reserved
+    check (slug not in ('studio', 'assets', 'api', 'admin', 'favicon', 'index'));
+exception when duplicate_object then null;
+end $$;
+
 -- Versions (immutable snapshot on every publish)
 create table if not exists public."q-quiz-versions" (
   id              uuid primary key default gen_random_uuid(),
