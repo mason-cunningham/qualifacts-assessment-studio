@@ -121,7 +121,7 @@ export function contextBlocks(ctx: ContextInput, opts: { includeProducts?: boole
     }
     parts.push('</products>');
   } else {
-    parts.push('<products>None provided. Leave every productIds list empty, every recommendProductId null, and set recommendations.enabled to false.</products>');
+    parts.push('<products>None provided. Leave every productIds list empty, every recommendProductId "", and set recommendations.enabled to false.</products>');
   }
   if (ctx.notes.trim()) parts.push(`<creator_notes>\n${ctx.notes.trim()}\n</creator_notes>`);
 
@@ -209,8 +209,8 @@ export function optionsTask(req: OptionsRequest): string {
     req.scoringMethod === 'points'
       ? 'Give each choice points from strongest (highest) to weakest (lowest), e.g. 3/2/1; set isGap on the weak ones.'
       : req.scoringMethod === 'gaps'
-        ? 'Set points to null and mark isGap true on choices that reveal a gap.'
-        : 'Set points to null and isGap false (this is an unscored survey).';
+        ? 'Set points to 0 and mark isGap true on choices that reveal a gap.'
+        : 'Set points to 0 and isGap false (this is an unscored survey).';
   return `${questionText(req)}
 
 Suggest 3–5 mutually exclusive answer choices ordered from strongest to weakest practice, each describing a concrete, recognizable situation. Add a "Not applicable" choice with notApplicable true only if some respondents genuinely can't answer. ${scoring}`;

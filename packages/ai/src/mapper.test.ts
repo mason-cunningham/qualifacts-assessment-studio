@@ -1,19 +1,23 @@
 import { describe, expect, it } from 'vitest';
+import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 import { computeResults } from '@qq/engine';
 import type { ProductSnapshot } from '@qq/schema';
 import { draftToDefinition, summarizeDefinition } from './mapper';
+import * as S from './schemas';
 import { AiDraftSchema, type AiDraft, type AiOption, type AiQuestion } from './schemas';
 import { contextBlocks, generateTask, SYSTEM_PROMPT } from './prompts';
 
-const opt = (label: string, points: number | null, extra: Partial<AiOption> = {}): AiOption => ({
+const opt = (label: string, points: number, extra: Partial<AiOption> = {}): AiOption => ({
   label, points, isGap: false, notApplicable: false, allowOtherText: false,
-  recommendProductId: null, recommendBadge: null, recommendRank: null, ...extra,
+  recommendProductId: '', recommendBadge: '', recommendRank: 0, ...extra,
 });
 
 const q = (key: string, sectionKey: string, text: string, options: AiOption[], extra: Partial<AiQuestion> = {}): AiQuestion => ({
-  key, sectionKey, type: 'single', role: 'scored', text, shortLabel: text.slice(0, 20), helpText: null, required: true, options,
-  ratingMin: null, ratingMax: null, ratingMinLabel: null, ratingMaxLabel: null, showIfQuestionKey: null, showIfOptionLabels: [], ...extra,
+  key, sectionKey, type: 'single', role: 'scored', text, shortLabel: text.slice(0, 20), helpText: '', required: true, options,
+  ratingMin: 0, ratingMax: 0, ratingMinLabel: '', ratingMaxLabel: '', showIfQuestionKey: '', showIfOptionLabels: [], ...extra,
 });
+
+const always = (body: string) => ({ when: 'always' as const, pct: 0, atLeast: 0, sectionKeys: [], topN: 0, min: 0, max: 0, body });
 
 const RCMS = '11111111-1111-1111-1111-111111111111';
 const products: ProductSnapshot[] = [{ id: RCMS, name: 'RCMS', productLine: 'RCMS', benefits: ['Fewer denials'] }];
@@ -36,25 +40,41 @@ function baseDraft(overrides: Partial<AiDraft> = {}): AiDraft {
       q('q2', 's2', 'How do you work denials?', [opt('Root cause first', 3), opt('Resubmit', 0, { isGap: true, recommendProductId: 'bogus' })]),
     ],
     tiers: [
-      { min: 80, max: 100, label: 'Strong', color: 'teal', summary: 'Nice.', body: null },
+      { min: 80, max: 100, label: 'Strong', color: 'teal', summary: 'Nice.', body: '' },
       { min: 0, max: 79, label: 'Leaky', color: 'magenta', summary: 'Work to do.', body: 'Start with **{{weakestSection}}**.' },
     ],
-    sectionTiers: [{ min: 0, max: 100, label: 'Area', color: 'navy', summary: '', body: null }],
+    sectionTiers: [{ min: 0, max: 100, label: 'Area', color: 'navy', summary: '', body: '' }],
     insights: [
-      { when: 'weakestInclude', pct: null, atLeast: null, sectionKeys: ['s2'], topN: 1, min: null, max: null, body: 'Denials are your biggest leak.' },
-      { when: 'always', pct: null, atLeast: null, sectionKeys: [], topN: null, min: null, max: null, body: 'Focus on {{weakestSection}}.' },
+      { when: 'weakestInclude', pct: 0, atLeast: 0, sectionKeys: ['s2'], topN: 1, min: 0, max: 0, body: 'Denials are your biggest leak.' },
+      always('Focus on {{weakestSection}}.'),
     ],
-    recommendations: { enabled: true, heading: 'How RCMS helps', intro: null, emptyMessage: null },
-    leadCapture: { position: 'beforeResults', heading: 'Get your results', body: null, fieldKeys: ['first_name', 'email', 'organization'], requiredKeys: ['email'] },
+    recommendations: { enabled: true, heading: 'How RCMS helps', intro: '', emptyMessage: '' },
+    leadCapture: { position: 'beforeResults', heading: 'Get your results', body: '', fieldKeys: ['first_name', 'email', 'organization'], requiredKeys: ['email'] },
     results: {
-      eyebrow: 'Your RCM score', headline: null, body: null, showSectionBreakdown: true, showGapList: true, showInsights: true,
-      showRecommendations: true, primaryCtaLabel: 'Talk to us', primaryCtaUrl: 'https://www.qualifacts.com/contact', footerNote: null,
-      thankYouHeadline: null, thankYouBody: null,
+      eyebrow: 'Your RCM score', headline: '', body: '', showSectionBreakdown: true, showGapList: true, showInsights: true,
+      showRecommendations: true, primaryCtaLabel: 'Talk to us', primaryCtaUrl: 'https://www.qualifacts.com/contact', footerNote: '',
+      thankYouHeadline: '', thankYouBody: '',
     },
     designNotes: 'Two areas.',
     ...overrides,
   };
 }
+
+describe('structured-output schemas', () => {
+  // The API rejects schemas with more than 16 union-typed parameters (nullable = union).
+  const names = ['AiDraftSchema', 'RewriteResultSchema', 'OptionsResultSchema', 'TierCopyResultSchema', 'ReviewResultSchema', 'KnowledgeExtractSchema'] as const;
+  for (const n of names) {
+    it(`${n} has no union-typed parameters and closes every object`, () => {
+      const json = JSON.stringify(zodOutputFormat(S[n]).schema);
+      const unions = (json.match(/"anyOf"|"oneOf"|"type":\[/g) ?? []).length;
+      expect(unions).toBe(0);
+      const objects = (json.match(/"type":"object"/g) ?? []).length;
+      const closed = (json.match(/"additionalProperties":false/g) ?? []).length;
+      expect(closed).toBe(objects);
+      expect(json).not.toMatch(/"minimum"|"maximum"|"minLength"|"maxLength"/);
+    });
+  }
+});
 
 describe('draftToDefinition', () => {
   it('fixture draft matches the structured-output schema', () => {
@@ -73,6 +93,8 @@ describe('draftToDefinition', () => {
     expect(definition.leadCapture.fields.find((f) => f.key === 'email')?.required).toBe(true);
     expect(definition.leadCapture.fields.find((f) => f.key === 'first_name')?.required).toBe(false);
     expect(definition.results.primaryCta?.url).toBe('https://www.qualifacts.com/contact');
+    expect(definition.results.headline).toBeUndefined(); // "" → not set
+    expect(definition.questions[0].helpText).toBeUndefined();
   });
 
   it('scores and recommends through the real engine', () => {
@@ -86,6 +108,7 @@ describe('draftToDefinition', () => {
     expect(r.max).toBe(6);
     expect(r.tier?.label).toBe('Leaky');
     expect(r.recommendations.map((x) => x.productId)).toEqual([RCMS]);
+    expect(r.recommendations[0].badge).toBe('Top Priority');
     expect(r.insight?.body).toBe('Denials are your biggest leak.');
   });
 
@@ -93,9 +116,9 @@ describe('draftToDefinition', () => {
     const draft = baseDraft({
       scoringMethod: 'gaps',
       questions: [
-        q('g', 's1', 'Do you bill Medicaid?', [opt('Yes', null), opt('No', null, { notApplicable: true })], { role: 'gate' }),
-        q('q1', 's1', 'Do you track Medicaid denials?', [opt('Yes', null), opt('No', null, { isGap: true })], { showIfQuestionKey: 'g', showIfOptionLabels: ['Yes'] }),
-        q('q2', 's2', 'Later question', [opt('Fine', null), opt('Bad', null, { isGap: true })], { showIfQuestionKey: 'q9', showIfOptionLabels: ['x'] }),
+        q('g', 's1', 'Do you bill Medicaid?', [opt('Yes', 0), opt('No', 0, { notApplicable: true })], { role: 'gate' }),
+        q('q1', 's1', 'Do you track Medicaid denials?', [opt('Yes', 0), opt('No', 0, { isGap: true })], { showIfQuestionKey: 'g', showIfOptionLabels: ['Yes'] }),
+        q('q2', 's2', 'Later question', [opt('Fine', 0), opt('Bad', 0, { isGap: true })], { showIfQuestionKey: 'q9', showIfOptionLabels: ['x'] }),
       ],
     });
     const { definition, issues, repairs } = draftToDefinition(draft, products);
@@ -112,11 +135,12 @@ describe('draftToDefinition', () => {
     const draft = baseDraft({
       scoringMethod: 'none',
       questions: [
-        q('q1', 's1', 'Your role?', [opt('Exec', null), opt('Other', null, { allowOtherText: true })], { role: 'segment' }),
+        q('q1', 's1', 'Your role?', [opt('Exec', 0), opt('Other', 0, { allowOtherText: true })], { role: 'segment' }),
         q('q2', 's1', 'Anything else?', [], { type: 'longtext', role: 'scored', required: false }),
         q('q3', 's2', 'Rate us', [], { type: 'rating', role: 'scored', ratingMin: 1, ratingMax: 5 }),
+        q('q4', 's2', 'Rate the rest', [], { type: 'rating', role: 'info' }),
       ],
-      recommendations: { enabled: false, heading: '', intro: null, emptyMessage: null },
+      recommendations: { enabled: false, heading: '', intro: '', emptyMessage: '' },
     });
     const { definition, issues } = draftToDefinition(draft, []);
     expect(issues.filter((i) => i.level === 'error')).toEqual([]);
@@ -124,12 +148,14 @@ describe('draftToDefinition', () => {
     expect(definition.scoring.tiers).toEqual([]);
     expect(definition.questions.every((x) => x.role !== 'scored')).toBe(true);
     expect(definition.questions[2].scale).toEqual({ min: 1, max: 5, minLabel: undefined, maxLabel: undefined });
+    expect(definition.questions[3].scale).toEqual({ min: 1, max: 5, minLabel: undefined, maxLabel: undefined }); // 0/0 → default 1–5
   });
 
-  it('fills missing points by position', () => {
-    const draft = baseDraft({ questions: [q('q1', 's1', 'X?', [opt('a', null), opt('b', null), opt('c', null)])] });
-    const { definition } = draftToDefinition(draft, products);
+  it('scores by position when every choice got the same points', () => {
+    const draft = baseDraft({ questions: [q('q1', 's1', 'X?', [opt('a', 0), opt('b', 0), opt('c', 0)])] });
+    const { definition, repairs } = draftToDefinition(draft, products);
     expect(definition.questions[0].options.map((o) => o.points)).toEqual([2, 1, 0]);
+    expect(repairs.some((r) => r.includes('by position'))).toBe(true);
   });
 
   it('summarizes a definition for review', () => {

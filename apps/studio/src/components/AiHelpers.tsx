@@ -71,7 +71,7 @@ export function QuestionAiTools({ def, q, onChange }: {
       d.options = opts.options.map((o) => ({
         id: newId('o'),
         label: o.label,
-        ...(def.scoring.method === 'points' && o.points !== null && !o.notApplicable ? { points: o.points } : {}),
+        ...(def.scoring.method === 'points' && !o.notApplicable ? { points: o.points } : {}),
         ...(o.isGap ? { isGap: true } : {}),
         ...(o.notApplicable ? { notApplicable: true } : {}),
       }));
@@ -111,7 +111,7 @@ export function QuestionAiTools({ def, q, onChange }: {
           <div className="row-between"><span className="label">Suggested choices</span><button type="button" className="btn btn-ghost btn-sm" onClick={() => setOpts(null)}>Dismiss</button></div>
           <ol className="small" style={{ margin: '6px 0', paddingLeft: 20 }}>
             {opts.options.map((o, i) => (
-              <li key={i}>{o.label} <span className="muted">{o.points !== null ? `· ${o.points} pts ` : ''}{o.isGap ? '· gap ' : ''}{o.notApplicable ? '· N/A' : ''}</span></li>
+              <li key={i}>{o.label} <span className="muted">{def.scoring.method === 'points' && !o.notApplicable ? `· ${o.points} pts ` : ''}{o.isGap ? '· gap ' : ''}{o.notApplicable ? '· N/A' : ''}</span></li>
             ))}
           </ol>
           <p className="small muted" style={{ margin: '0 0 8px' }}>{opts.rationale}</p>

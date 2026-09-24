@@ -24,15 +24,8 @@ export const SCHEMAS = {
             "description": "One sentence under the tier name"
           },
           "body": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Optional guidance paragraph (Markdown; may use {{weakestSection}}, {{score}})"
+            "type": "string",
+            "description": "Guidance paragraph (Markdown; may use {{weakestSection}}, {{score}}); \"\" for none"
           }
         },
         "additionalProperties": false,
@@ -55,14 +48,8 @@ export const SCHEMAS = {
         "type": "string"
       },
       "productLine": {
-        "anyOf": [
-          {
-            "type": "string"
-          },
-          {
-            "type": "null"
-          }
-        ]
+        "type": "string",
+        "description": "\"\" if not specific to one product line"
       },
       "intro": {
         "type": "object",
@@ -175,14 +162,8 @@ export const SCHEMAS = {
               "description": "2–5 word label used in reports and results, e.g. \"Denial tracking\""
             },
             "helpText": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ]
+              "type": "string",
+              "description": "Optional help text; \"\" for none"
             },
             "required": {
               "type": "boolean"
@@ -198,15 +179,8 @@ export const SCHEMAS = {
                     "description": "Answer text shown to the respondent"
                   },
                   "points": {
-                    "anyOf": [
-                      {
-                        "type": "number"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ],
-                    "description": "Points for this answer when scoringMethod is \"points\"; null otherwise"
+                    "type": "number",
+                    "description": "Points for this answer when scoringMethod is \"points\"; 0 otherwise"
                   },
                   "isGap": {
                     "type": "boolean",
@@ -221,37 +195,16 @@ export const SCHEMAS = {
                     "description": "True for an \"Other (please specify)\" answer"
                   },
                   "recommendProductId": {
-                    "anyOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ],
-                    "description": "ID of a provided product that solves the need this answer reveals, or null"
+                    "type": "string",
+                    "description": "ID of a provided product that solves the need this answer reveals, or \"\" for none"
                   },
                   "recommendBadge": {
-                    "anyOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ],
-                    "description": "Short badge for the recommendation card, e.g. \"Top Priority\" or \"Opportunity\""
+                    "type": "string",
+                    "description": "Short badge for the recommendation card, e.g. \"Top Priority\" or \"Opportunity\"; \"\" if no recommendation"
                   },
                   "recommendRank": {
-                    "anyOf": [
-                      {
-                        "type": "number"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ],
-                    "description": "Lower ranks sort first (e.g. 0 for the worst answer, 5 for a partial answer)"
+                    "type": "number",
+                    "description": "Lower ranks sort first (0 for the weakest answer, 5 for a partial answer)"
                   }
                 },
                 "additionalProperties": false,
@@ -268,58 +221,28 @@ export const SCHEMAS = {
               }
             },
             "ratingMin": {
-              "anyOf": [
-                {
-                  "type": "number"
-                },
-                {
-                  "type": "null"
-                }
-              ]
+              "type": "number",
+              "description": "Rating questions only (usually 1); 0 otherwise"
             },
             "ratingMax": {
-              "anyOf": [
-                {
-                  "type": "number"
-                },
-                {
-                  "type": "null"
-                }
-              ]
+              "type": "number",
+              "description": "Rating questions only (usually 5); 0 otherwise"
             },
             "ratingMinLabel": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ]
+              "type": "string",
+              "description": "Rating questions only; \"\" otherwise"
             },
             "ratingMaxLabel": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ]
+              "type": "string",
+              "description": "Rating questions only; \"\" otherwise"
             },
             "showIfQuestionKey": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Only show this question when an EARLIER question has one of showIfOptionLabels selected"
+              "type": "string",
+              "description": "Key of an EARLIER question that controls whether this one is shown; \"\" to always show"
             },
             "showIfOptionLabels": {
               "type": "array",
+              "description": "Exact labels of the controlling question's answers that make this question appear",
               "items": {
                 "type": "string"
               }
@@ -368,60 +291,31 @@ export const SCHEMAS = {
               "description": "{enum: [\"always\",\"sectionsBelowCount\",\"weakestInclude\",\"overallBetween\"]}"
             },
             "pct": {
-              "anyOf": [
-                {
-                  "type": "number"
-                },
-                {
-                  "type": "null"
-                }
-              ]
+              "type": "number",
+              "description": "sectionsBelowCount: the percent threshold; 0 otherwise"
             },
             "atLeast": {
-              "anyOf": [
-                {
-                  "type": "number"
-                },
-                {
-                  "type": "null"
-                }
-              ]
+              "type": "number",
+              "description": "sectionsBelowCount: how many sections; 0 otherwise"
             },
             "sectionKeys": {
               "type": "array",
+              "description": "weakestInclude: section keys; empty otherwise",
               "items": {
                 "type": "string"
               }
             },
             "topN": {
-              "anyOf": [
-                {
-                  "type": "number"
-                },
-                {
-                  "type": "null"
-                }
-              ]
+              "type": "number",
+              "description": "weakestInclude: among the N weakest sections; 0 otherwise"
             },
             "min": {
-              "anyOf": [
-                {
-                  "type": "number"
-                },
-                {
-                  "type": "null"
-                }
-              ]
+              "type": "number",
+              "description": "overallBetween: lower bound; 0 otherwise"
             },
             "max": {
-              "anyOf": [
-                {
-                  "type": "number"
-                },
-                {
-                  "type": "null"
-                }
-              ]
+              "type": "number",
+              "description": "overallBetween: upper bound; 0 otherwise"
             },
             "body": {
               "type": "string"
@@ -450,24 +344,12 @@ export const SCHEMAS = {
             "type": "string"
           },
           "intro": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "type": "string",
+            "description": "\"\" for none"
           },
           "emptyMessage": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "type": "string",
+            "description": "Shown when nothing is recommended; \"\" for the default"
           }
         },
         "additionalProperties": false,
@@ -489,14 +371,8 @@ export const SCHEMAS = {
             "type": "string"
           },
           "body": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "type": "string",
+            "description": "\"\" for none"
           },
           "fieldKeys": {
             "type": "array",
@@ -529,24 +405,12 @@ export const SCHEMAS = {
             "type": "string"
           },
           "headline": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "type": "string",
+            "description": "Overrides tier summaries when set; usually \"\""
           },
           "body": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "type": "string",
+            "description": "Extra results-page content; \"\" for none"
           },
           "showSectionBreakdown": {
             "type": "boolean"
@@ -561,54 +425,24 @@ export const SCHEMAS = {
             "type": "boolean"
           },
           "primaryCtaLabel": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "type": "string",
+            "description": "\"\" for no button"
           },
           "primaryCtaUrl": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "type": "string",
+            "description": "Full https:// URL, or \"\""
           },
           "footerNote": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "type": "string",
+            "description": "\"\" for none"
           },
           "thankYouHeadline": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "type": "string",
+            "description": "Surveys only; \"\" otherwise"
           },
           "thankYouBody": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "type": "string",
+            "description": "Surveys only; \"\" otherwise"
           }
         },
         "additionalProperties": false,
@@ -698,14 +532,8 @@ export const SCHEMAS = {
               "type": "string"
             },
             "points": {
-              "anyOf": [
-                {
-                  "type": "number"
-                },
-                {
-                  "type": "null"
-                }
-              ]
+              "type": "number",
+              "description": "Points when scoring by points; 0 otherwise"
             },
             "isGap": {
               "type": "boolean"
@@ -787,15 +615,8 @@ export const SCHEMAS = {
               "description": "{enum: [\"content\",\"scoring\",\"results\",\"lead\",\"branding\",\"other\"]}"
             },
             "questionNumber": {
-              "anyOf": [
-                {
-                  "type": "number"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "1-based question number from the provided list, or null"
+              "type": "number",
+              "description": "1-based question number from the provided list, or 0 if not about one question"
             },
             "message": {
               "type": "string"
@@ -836,14 +657,8 @@ export const SCHEMAS = {
         "type": "string"
       },
       "productLine": {
-        "anyOf": [
-          {
-            "type": "string"
-          },
-          {
-            "type": "null"
-          }
-        ]
+        "type": "string",
+        "description": "\"\" if not specific to one product line"
       },
       "content": {
         "type": "string",

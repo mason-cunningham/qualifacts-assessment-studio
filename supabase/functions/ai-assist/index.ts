@@ -80,7 +80,7 @@ ${lines.join("\n")}
     }
     parts.push("</products>");
   } else {
-    parts.push("<products>None provided. Leave every productIds list empty, every recommendProductId null, and set recommendations.enabled to false.</products>");
+    parts.push('<products>None provided. Leave every productIds list empty, every recommendProductId "", and set recommendations.enabled to false.</products>');
   }
   if (ctx.notes.trim()) parts.push(`<creator_notes>
 ${ctx.notes.trim()}
@@ -153,7 +153,7 @@ function rewriteTask(req) {
 Suggest 3 improved versions of this question's wording: clearer, neutral (not leading), and in the respondent's own operational language. Keep the same intent so the existing answer choices still fit. For each, give a 2\u20135 word short label and a one-line reason.`;
 }
 function optionsTask(req) {
-  const scoring = req.scoringMethod === "points" ? "Give each choice points from strongest (highest) to weakest (lowest), e.g. 3/2/1; set isGap on the weak ones." : req.scoringMethod === "gaps" ? "Set points to null and mark isGap true on choices that reveal a gap." : "Set points to null and isGap false (this is an unscored survey).";
+  const scoring = req.scoringMethod === "points" ? "Give each choice points from strongest (highest) to weakest (lowest), e.g. 3/2/1; set isGap on the weak ones." : req.scoringMethod === "gaps" ? "Set points to 0 and mark isGap true on choices that reveal a gap." : "Set points to 0 and isGap false (this is an unscored survey).";
   return `${questionText(req)}
 
 Suggest 3\u20135 mutually exclusive answer choices ordered from strongest to weakest practice, each describing a concrete, recognizable situation. Add a "Not applicable" choice with notApplicable true only if some respondents genuinely can't answer. ${scoring}`;
@@ -210,15 +210,8 @@ var SCHEMAS = {
             "description": "One sentence under the tier name"
           },
           "body": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Optional guidance paragraph (Markdown; may use {{weakestSection}}, {{score}})"
+            "type": "string",
+            "description": 'Guidance paragraph (Markdown; may use {{weakestSection}}, {{score}}); "" for none'
           }
         },
         "additionalProperties": false,
@@ -241,14 +234,8 @@ var SCHEMAS = {
         "type": "string"
       },
       "productLine": {
-        "anyOf": [
-          {
-            "type": "string"
-          },
-          {
-            "type": "null"
-          }
-        ]
+        "type": "string",
+        "description": '"" if not specific to one product line'
       },
       "intro": {
         "type": "object",
@@ -361,14 +348,8 @@ var SCHEMAS = {
               "description": '2\u20135 word label used in reports and results, e.g. "Denial tracking"'
             },
             "helpText": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ]
+              "type": "string",
+              "description": 'Optional help text; "" for none'
             },
             "required": {
               "type": "boolean"
@@ -384,15 +365,8 @@ var SCHEMAS = {
                     "description": "Answer text shown to the respondent"
                   },
                   "points": {
-                    "anyOf": [
-                      {
-                        "type": "number"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ],
-                    "description": 'Points for this answer when scoringMethod is "points"; null otherwise'
+                    "type": "number",
+                    "description": 'Points for this answer when scoringMethod is "points"; 0 otherwise'
                   },
                   "isGap": {
                     "type": "boolean",
@@ -407,37 +381,16 @@ var SCHEMAS = {
                     "description": 'True for an "Other (please specify)" answer'
                   },
                   "recommendProductId": {
-                    "anyOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ],
-                    "description": "ID of a provided product that solves the need this answer reveals, or null"
+                    "type": "string",
+                    "description": 'ID of a provided product that solves the need this answer reveals, or "" for none'
                   },
                   "recommendBadge": {
-                    "anyOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ],
-                    "description": 'Short badge for the recommendation card, e.g. "Top Priority" or "Opportunity"'
+                    "type": "string",
+                    "description": 'Short badge for the recommendation card, e.g. "Top Priority" or "Opportunity"; "" if no recommendation'
                   },
                   "recommendRank": {
-                    "anyOf": [
-                      {
-                        "type": "number"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ],
-                    "description": "Lower ranks sort first (e.g. 0 for the worst answer, 5 for a partial answer)"
+                    "type": "number",
+                    "description": "Lower ranks sort first (0 for the weakest answer, 5 for a partial answer)"
                   }
                 },
                 "additionalProperties": false,
@@ -454,58 +407,28 @@ var SCHEMAS = {
               }
             },
             "ratingMin": {
-              "anyOf": [
-                {
-                  "type": "number"
-                },
-                {
-                  "type": "null"
-                }
-              ]
+              "type": "number",
+              "description": "Rating questions only (usually 1); 0 otherwise"
             },
             "ratingMax": {
-              "anyOf": [
-                {
-                  "type": "number"
-                },
-                {
-                  "type": "null"
-                }
-              ]
+              "type": "number",
+              "description": "Rating questions only (usually 5); 0 otherwise"
             },
             "ratingMinLabel": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ]
+              "type": "string",
+              "description": 'Rating questions only; "" otherwise'
             },
             "ratingMaxLabel": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ]
+              "type": "string",
+              "description": 'Rating questions only; "" otherwise'
             },
             "showIfQuestionKey": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Only show this question when an EARLIER question has one of showIfOptionLabels selected"
+              "type": "string",
+              "description": 'Key of an EARLIER question that controls whether this one is shown; "" to always show'
             },
             "showIfOptionLabels": {
               "type": "array",
+              "description": "Exact labels of the controlling question's answers that make this question appear",
               "items": {
                 "type": "string"
               }
@@ -554,60 +477,31 @@ var SCHEMAS = {
               "description": '{enum: ["always","sectionsBelowCount","weakestInclude","overallBetween"]}'
             },
             "pct": {
-              "anyOf": [
-                {
-                  "type": "number"
-                },
-                {
-                  "type": "null"
-                }
-              ]
+              "type": "number",
+              "description": "sectionsBelowCount: the percent threshold; 0 otherwise"
             },
             "atLeast": {
-              "anyOf": [
-                {
-                  "type": "number"
-                },
-                {
-                  "type": "null"
-                }
-              ]
+              "type": "number",
+              "description": "sectionsBelowCount: how many sections; 0 otherwise"
             },
             "sectionKeys": {
               "type": "array",
+              "description": "weakestInclude: section keys; empty otherwise",
               "items": {
                 "type": "string"
               }
             },
             "topN": {
-              "anyOf": [
-                {
-                  "type": "number"
-                },
-                {
-                  "type": "null"
-                }
-              ]
+              "type": "number",
+              "description": "weakestInclude: among the N weakest sections; 0 otherwise"
             },
             "min": {
-              "anyOf": [
-                {
-                  "type": "number"
-                },
-                {
-                  "type": "null"
-                }
-              ]
+              "type": "number",
+              "description": "overallBetween: lower bound; 0 otherwise"
             },
             "max": {
-              "anyOf": [
-                {
-                  "type": "number"
-                },
-                {
-                  "type": "null"
-                }
-              ]
+              "type": "number",
+              "description": "overallBetween: upper bound; 0 otherwise"
             },
             "body": {
               "type": "string"
@@ -636,24 +530,12 @@ var SCHEMAS = {
             "type": "string"
           },
           "intro": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "type": "string",
+            "description": '"" for none'
           },
           "emptyMessage": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "type": "string",
+            "description": 'Shown when nothing is recommended; "" for the default'
           }
         },
         "additionalProperties": false,
@@ -675,14 +557,8 @@ var SCHEMAS = {
             "type": "string"
           },
           "body": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "type": "string",
+            "description": '"" for none'
           },
           "fieldKeys": {
             "type": "array",
@@ -715,24 +591,12 @@ var SCHEMAS = {
             "type": "string"
           },
           "headline": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "type": "string",
+            "description": 'Overrides tier summaries when set; usually ""'
           },
           "body": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "type": "string",
+            "description": 'Extra results-page content; "" for none'
           },
           "showSectionBreakdown": {
             "type": "boolean"
@@ -747,54 +611,24 @@ var SCHEMAS = {
             "type": "boolean"
           },
           "primaryCtaLabel": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "type": "string",
+            "description": '"" for no button'
           },
           "primaryCtaUrl": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "type": "string",
+            "description": 'Full https:// URL, or ""'
           },
           "footerNote": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "type": "string",
+            "description": '"" for none'
           },
           "thankYouHeadline": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "type": "string",
+            "description": 'Surveys only; "" otherwise'
           },
           "thankYouBody": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "type": "string",
+            "description": 'Surveys only; "" otherwise'
           }
         },
         "additionalProperties": false,
@@ -884,14 +718,8 @@ var SCHEMAS = {
               "type": "string"
             },
             "points": {
-              "anyOf": [
-                {
-                  "type": "number"
-                },
-                {
-                  "type": "null"
-                }
-              ]
+              "type": "number",
+              "description": "Points when scoring by points; 0 otherwise"
             },
             "isGap": {
               "type": "boolean"
@@ -973,15 +801,8 @@ var SCHEMAS = {
               "description": '{enum: ["content","scoring","results","lead","branding","other"]}'
             },
             "questionNumber": {
-              "anyOf": [
-                {
-                  "type": "number"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "1-based question number from the provided list, or null"
+              "type": "number",
+              "description": "1-based question number from the provided list, or 0 if not about one question"
             },
             "message": {
               "type": "string"
@@ -1022,14 +843,8 @@ var SCHEMAS = {
         "type": "string"
       },
       "productLine": {
-        "anyOf": [
-          {
-            "type": "string"
-          },
-          {
-            "type": "null"
-          }
-        ]
+        "type": "string",
+        "description": '"" if not specific to one product line'
       },
       "content": {
         "type": "string",

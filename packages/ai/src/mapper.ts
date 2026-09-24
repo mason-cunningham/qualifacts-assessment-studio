@@ -32,7 +32,6 @@ const LEAD_LABELS: Record<string, LeadField> = Object.fromEntries(
   ].map((f) => [f.key, f as LeadField]),
 );
 
-const nn = <T>(v: T | null | undefined): T | undefined => (v === null ? undefined : v);
 const text = (v: string | null | undefined) => (v && v.trim() ? v.trim() : undefined);
 
 export interface DraftConversion {
@@ -84,18 +83,15 @@ export function draftToDefinition(draft: AiDraft, products: ProductSnapshot[]): 
 
     const optMap = new Map<string, string>();
     const options = choice
-      ? q.options.map((o, oi) => {
+      ? q.options.map((o) => {
           const oid = newId('o');
           optMap.set(o.label.trim().toLowerCase(), oid);
-          let points: number | undefined;
-          if (method === 'points' && role === 'scored' && !o.notApplicable) {
-            // Fallback: descending points by position if Claude omitted them
-            points = o.points ?? Math.max(0, q.options.length - 1 - oi);
-          }
-          const rec = o.recommendProductId && allowed.has(o.recommendProductId)
-            ? { productIds: [o.recommendProductId], badge: text(o.recommendBadge), rank: nn(o.recommendRank) }
+          const points = method === 'points' && role === 'scored' && !o.notApplicable ? o.points : undefined;
+          const pid = o.recommendProductId.trim();
+          const rec = pid && allowed.has(pid)
+            ? { productIds: [pid], badge: text(o.recommendBadge), rank: o.recommendRank }
             : undefined;
-          if (o.recommendProductId && !allowed.has(o.recommendProductId)) repairs.push(`Dropped a recommendation to an unknown product on Q${idx + 1}.`);
+          if (pid && !allowed.has(pid)) repairs.push(`Dropped a recommendation to an unknown product on Q${idx + 1}.`);
           return {
             id: oid,
             label: o.label,
@@ -108,6 +104,13 @@ export function draftToDefinition(draft: AiDraft, products: ProductSnapshot[]): 
         })
       : [];
     optionIdsByQuestion.set(q.key, optMap);
+
+    // Fallback: if every scorable choice got the same points (e.g. all 0), score by position
+    const scorable = options.filter((o) => o.points !== undefined);
+    if (scorable.length > 1 && scorable.every((o) => o.points === scorable[0].points)) {
+      scorable.forEach((o, i) => { o.points = scorable.length - 1 - i; });
+      repairs.push(`Q${idx + 1} had no point differences; scored its choices by position.`);
+    }
 
     const question: Question = {
       id,
@@ -122,8 +125,8 @@ export function draftToDefinition(draft: AiDraft, products: ProductSnapshot[]): 
       options,
     };
     if (q.type === 'rating') {
-      const min = q.ratingMin ?? 1;
-      const max = q.ratingMax !== null && q.ratingMax > min ? q.ratingMax : min + 4;
+      const min = q.ratingMin || 1;
+      const max = q.ratingMax > min ? q.ratingMax : min + 4;
       question.scale = { min, max, minLabel: text(q.ratingMinLabel), maxLabel: text(q.ratingMaxLabel) };
     }
     return question;
@@ -170,13 +173,13 @@ export function draftToDefinition(draft: AiDraft, products: ProductSnapshot[]): 
     const id = newId('i');
     switch (i.when) {
       case 'sectionsBelowCount':
-        return { id, body, when: { type: 'sectionsBelowCount', pct: i.pct ?? 60, atLeast: i.atLeast ?? 2 } };
+        return { id, body, when: { type: 'sectionsBelowCount', pct: i.pct || 60, atLeast: i.atLeast || 2 } };
       case 'weakestInclude': {
         const ids = i.sectionKeys.map((k) => sectionId.get(k)).filter((x): x is string => !!x);
-        return ids.length ? { id, body, when: { type: 'weakestInclude', sectionIds: ids, topN: i.topN ?? 3 } } : null;
+        return ids.length ? { id, body, when: { type: 'weakestInclude', sectionIds: ids, topN: i.topN || Math.max(3, ids.length) } } : null;
       }
       case 'overallBetween':
-        return { id, body, when: { type: 'overallBetween', min: i.min ?? 0, max: i.max ?? 100 } };
+        return { id, body, when: { type: 'overallBetween', min: i.min, max: i.max || 100 } };
       default:
         return { id, body, when: { type: 'always' } };
     }

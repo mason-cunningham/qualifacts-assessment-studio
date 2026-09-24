@@ -3,10 +3,12 @@ import { z } from 'zod/v4';
 // ─────────────────────────────────────────────────────────────────────────────
 // Structured-output schemas for Claude.
 //
-// Deliberately flat and generation-friendly: every field is required (nullable
-// instead of optional), no recursion, no numeric/string constraints. That keeps
-// them inside the structured-outputs JSON Schema subset. `draftToDefinition()`
-// converts an AiDraft into the app's full AssessmentDefinition.
+// Constraints from the structured-outputs API that shape this file:
+//  • At most 16 union-typed parameters per schema (nullable = union), so we use
+//    NO nullables at all: "" means "none" for strings and 0 means "not set" for
+//    numbers. `draftToDefinition()` interprets those sentinels.
+//  • No numeric/string constraints, no recursion, additionalProperties:false.
+//  (enforced by packages/ai/src/mapper.test.ts)
 //
 // Imported by BOTH the Supabase Edge Function (bundled) and Studio. Keep this
 // file free of Node/browser-specific imports.
@@ -19,13 +21,13 @@ export const AI_LEAD_KEYS = ['first_name', 'last_name', 'email', 'organization',
 
 export const AiOptionSchema = z.object({
   label: z.string().describe('Answer text shown to the respondent'),
-  points: z.number().nullable().describe('Points for this answer when scoringMethod is "points"; null otherwise'),
+  points: z.number().describe('Points for this answer when scoringMethod is "points"; 0 otherwise'),
   isGap: z.boolean().describe('True when this answer reveals an operational gap'),
   notApplicable: z.boolean().describe('On a gate question: marks the section not applicable. On a scored question: excludes it from scoring'),
   allowOtherText: z.boolean().describe('True for an "Other (please specify)" answer'),
-  recommendProductId: z.string().nullable().describe('ID of a provided product that solves the need this answer reveals, or null'),
-  recommendBadge: z.string().nullable().describe('Short badge for the recommendation card, e.g. "Top Priority" or "Opportunity"'),
-  recommendRank: z.number().nullable().describe('Lower ranks sort first (e.g. 0 for the worst answer, 5 for a partial answer)'),
+  recommendProductId: z.string().describe('ID of a provided product that solves the need this answer reveals, or "" for none'),
+  recommendBadge: z.string().describe('Short badge for the recommendation card, e.g. "Top Priority" or "Opportunity"; "" if no recommendation'),
+  recommendRank: z.number().describe('Lower ranks sort first (0 for the weakest answer, 5 for a partial answer)'),
 });
 
 export const AiQuestionSchema = z.object({
@@ -35,15 +37,15 @@ export const AiQuestionSchema = z.object({
   role: z.enum(AI_ROLES),
   text: z.string(),
   shortLabel: z.string().describe('2–5 word label used in reports and results, e.g. "Denial tracking"'),
-  helpText: z.string().nullable(),
+  helpText: z.string().describe('Optional help text; "" for none'),
   required: z.boolean(),
   options: z.array(AiOptionSchema).describe('Answer choices for single/multi/dropdown/yesno questions; empty for others'),
-  ratingMin: z.number().nullable(),
-  ratingMax: z.number().nullable(),
-  ratingMinLabel: z.string().nullable(),
-  ratingMaxLabel: z.string().nullable(),
-  showIfQuestionKey: z.string().nullable().describe('Only show this question when an EARLIER question has one of showIfOptionLabels selected'),
-  showIfOptionLabels: z.array(z.string()),
+  ratingMin: z.number().describe('Rating questions only (usually 1); 0 otherwise'),
+  ratingMax: z.number().describe('Rating questions only (usually 5); 0 otherwise'),
+  ratingMinLabel: z.string().describe('Rating questions only; "" otherwise'),
+  ratingMaxLabel: z.string().describe('Rating questions only; "" otherwise'),
+  showIfQuestionKey: z.string().describe('Key of an EARLIER question that controls whether this one is shown; "" to always show'),
+  showIfOptionLabels: z.array(z.string()).describe('Exact labels of the controlling question\'s answers that make this question appear'),
 });
 
 export const AiSectionSchema = z.object({
@@ -59,24 +61,24 @@ export const AiTierSchema = z.object({
   label: z.string(),
   color: z.enum(AI_COLORS),
   summary: z.string().describe('One sentence under the tier name'),
-  body: z.string().nullable().describe('Optional guidance paragraph (Markdown; may use {{weakestSection}}, {{score}})'),
+  body: z.string().describe('Guidance paragraph (Markdown; may use {{weakestSection}}, {{score}}); "" for none'),
 });
 
 export const AiInsightSchema = z.object({
   when: z.enum(['always', 'sectionsBelowCount', 'weakestInclude', 'overallBetween']),
-  pct: z.number().nullable(),
-  atLeast: z.number().nullable(),
-  sectionKeys: z.array(z.string()),
-  topN: z.number().nullable(),
-  min: z.number().nullable(),
-  max: z.number().nullable(),
+  pct: z.number().describe('sectionsBelowCount: the percent threshold; 0 otherwise'),
+  atLeast: z.number().describe('sectionsBelowCount: how many sections; 0 otherwise'),
+  sectionKeys: z.array(z.string()).describe('weakestInclude: section keys; empty otherwise'),
+  topN: z.number().describe('weakestInclude: among the N weakest sections; 0 otherwise'),
+  min: z.number().describe('overallBetween: lower bound; 0 otherwise'),
+  max: z.number().describe('overallBetween: upper bound; 0 otherwise'),
   body: z.string(),
 });
 
 export const AiDraftSchema = z.object({
   title: z.string(),
   description: z.string(),
-  productLine: z.string().nullable(),
+  productLine: z.string().describe('"" if not specific to one product line'),
   intro: z.object({
     eyebrow: z.string(),
     headline: z.string(),
@@ -97,29 +99,29 @@ export const AiDraftSchema = z.object({
   recommendations: z.object({
     enabled: z.boolean(),
     heading: z.string(),
-    intro: z.string().nullable(),
-    emptyMessage: z.string().nullable(),
+    intro: z.string().describe('"" for none'),
+    emptyMessage: z.string().describe('Shown when nothing is recommended; "" for the default'),
   }),
   leadCapture: z.object({
     position: z.enum(['beforeResults', 'beforeQuestions', 'off']),
     heading: z.string(),
-    body: z.string().nullable(),
+    body: z.string().describe('"" for none'),
     fieldKeys: z.array(z.enum(AI_LEAD_KEYS)),
     requiredKeys: z.array(z.enum(AI_LEAD_KEYS)),
   }),
   results: z.object({
     eyebrow: z.string(),
-    headline: z.string().nullable(),
-    body: z.string().nullable(),
+    headline: z.string().describe('Overrides tier summaries when set; usually ""'),
+    body: z.string().describe('Extra results-page content; "" for none'),
     showSectionBreakdown: z.boolean(),
     showGapList: z.boolean(),
     showInsights: z.boolean(),
     showRecommendations: z.boolean(),
-    primaryCtaLabel: z.string().nullable(),
-    primaryCtaUrl: z.string().nullable(),
-    footerNote: z.string().nullable(),
-    thankYouHeadline: z.string().nullable(),
-    thankYouBody: z.string().nullable(),
+    primaryCtaLabel: z.string().describe('"" for no button'),
+    primaryCtaUrl: z.string().describe('Full https:// URL, or ""'),
+    footerNote: z.string().describe('"" for none'),
+    thankYouHeadline: z.string().describe('Surveys only; "" otherwise'),
+    thankYouBody: z.string().describe('Surveys only; "" otherwise'),
   }),
   designNotes: z.string().describe('2–4 sentences for the creator explaining the structure and scoring choices'),
 });
@@ -133,7 +135,7 @@ export const RewriteResultSchema = z.object({
 export const OptionsResultSchema = z.object({
   options: z.array(z.object({
     label: z.string(),
-    points: z.number().nullable(),
+    points: z.number().describe('Points when scoring by points; 0 otherwise'),
     isGap: z.boolean(),
     notApplicable: z.boolean(),
   })),
@@ -149,7 +151,7 @@ export const ReviewResultSchema = z.object({
   issues: z.array(z.object({
     severity: z.enum(['high', 'medium', 'low']),
     area: z.enum(['content', 'scoring', 'results', 'lead', 'branding', 'other']),
-    questionNumber: z.number().nullable().describe('1-based question number from the provided list, or null'),
+    questionNumber: z.number().describe('1-based question number from the provided list, or 0 if not about one question'),
     message: z.string(),
     suggestion: z.string(),
   })),
@@ -159,7 +161,7 @@ export const KnowledgeExtractSchema = z.object({
   title: z.string(),
   kind: z.enum(['product_info', 'best_practices', 'messaging', 'reference']),
   topic: z.string(),
-  productLine: z.string().nullable(),
+  productLine: z.string().describe('"" if not specific to one product line'),
   content: z.string().describe('Clean, well-structured Markdown notes capturing every useful fact'),
   summary: z.string(),
 });
