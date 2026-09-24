@@ -185,6 +185,21 @@ var AI_LIMITS = {
   maxFiles: 5
 };
 
+// packages/ai/src/json.ts
+function extractJsonObject(raw) {
+  let s = raw.trim();
+  const fenced = s.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
+  if (fenced) s = fenced[1];
+  try {
+    return JSON.parse(s);
+  } catch {
+    const start = s.indexOf("{");
+    const end = s.lastIndexOf("}");
+    if (start < 0 || end <= start) throw new Error("No JSON object found");
+    return JSON.parse(s.slice(start, end + 1));
+  }
+}
+
 // supabase/functions/ai-assist/src/generated-schemas.ts
 var SCHEMAS = {
   "AiDraft": {
@@ -870,14 +885,17 @@ var SCHEMAS = {
 // supabase/functions/ai-assist/src/index.ts
 var DEFAULT_ORIGINS = ["https://qualifacts-assess.netlify.app", "http://localhost:5173", "http://127.0.0.1:5173"];
 var MODE_CONFIG = {
-  generate: { schema: "AiDraft", effort: "high", maxTokens: 32e3 },
-  import: { schema: "AiDraft", effort: "high", maxTokens: 32e3 },
-  extract_knowledge: { schema: "KnowledgeExtract", effort: "medium", maxTokens: 16e3 },
-  rewrite: { schema: "RewriteResult", effort: "low", maxTokens: 4e3 },
-  options: { schema: "OptionsResult", effort: "low", maxTokens: 4e3 },
-  tier_copy: { schema: "TierCopyResult", effort: "medium", maxTokens: 8e3 },
-  review: { schema: "ReviewResult", effort: "medium", maxTokens: 8e3 }
+  generate: { schema: "AiDraft", effort: "high", maxTokens: 32e3, constrained: false },
+  import: { schema: "AiDraft", effort: "high", maxTokens: 32e3, constrained: false },
+  extract_knowledge: { schema: "KnowledgeExtract", effort: "medium", maxTokens: 16e3, constrained: true },
+  rewrite: { schema: "RewriteResult", effort: "low", maxTokens: 4e3, constrained: true },
+  options: { schema: "OptionsResult", effort: "low", maxTokens: 4e3, constrained: true },
+  tier_copy: { schema: "TierCopyResult", effort: "medium", maxTokens: 8e3, constrained: true },
+  review: { schema: "ReviewResult", effort: "medium", maxTokens: 8e3, constrained: true }
 };
+function schemaInstruction(schema) {
+  return 'Respond with ONLY a single JSON object (no prose, no code fences) that matches this JSON Schema. Include every property; use "" / 0 / [] / false for anything not applicable. Where a description says {enum: [...]}, use one of those exact values.\n\n' + JSON.stringify(SCHEMAS[schema]);
+}
 var GENERATE_PHASES = [
   ['"designNotes"', "Finishing up"],
   ['"results"', "Writing the results page"],
@@ -972,10 +990,13 @@ Deno.serve(async (req) => {
           model: MODEL,
           max_tokens: conf.maxTokens,
           thinking: { type: "adaptive" },
-          output_config: { effort, format: { type: "json_schema", schema: SCHEMAS[conf.schema] } },
+          output_config: conf.constrained ? { effort, format: { type: "json_schema", schema: SCHEMAS[conf.schema] } } : { effort },
           betas: ["server-side-fallback-2026-07-01"],
           fallbacks: "default",
-          system: [{ type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
+          system: conf.constrained ? [{ type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }] : [
+            { type: "text", text: SYSTEM_PROMPT },
+            { type: "text", text: schemaInstruction(conf.schema), cache_control: { type: "ephemeral" } }
+          ],
           messages: [{ role: "user", content }]
         });
         let text = "";
@@ -1008,7 +1029,7 @@ Deno.serve(async (req) => {
         const out = msg.content.filter((b) => b.type === "text").map((b) => b.text).join("");
         let data;
         try {
-          data = JSON.parse(out);
+          data = extractJsonObject(out);
         } catch {
           throw new Error("Claude's response couldn't be read. Please try again.");
         }

@@ -27,6 +27,7 @@ import {
   type ProductForPrompt,
 } from '../../../../packages/ai/src/prompts';
 import { AI_LIMITS, type AiEvent, type AiMode, type AiRequest, type StoredFile, type TextAttachment } from '../../../../packages/ai/src/requests';
+import { extractJsonObject } from '../../../../packages/ai/src/json';
 import { SCHEMAS } from './generated-schemas';
 
 declare const Deno: { env: { get(k: string): string | undefined }; serve(h: (req: Request) => Response | Promise<Response>): void };
@@ -35,15 +36,24 @@ const DEFAULT_ORIGINS = ['https://qualifacts-assess.netlify.app', 'http://localh
 
 type Effort = 'low' | 'medium' | 'high' | 'xhigh' | 'max';
 
-const MODE_CONFIG: Record<AiMode, { schema: keyof typeof SCHEMAS; effort: Effort; maxTokens: number }> = {
-  generate: { schema: 'AiDraft', effort: 'high', maxTokens: 32000 },
-  import: { schema: 'AiDraft', effort: 'high', maxTokens: 32000 },
-  extract_knowledge: { schema: 'KnowledgeExtract', effort: 'medium', maxTokens: 16000 },
-  rewrite: { schema: 'RewriteResult', effort: 'low', maxTokens: 4000 },
-  options: { schema: 'OptionsResult', effort: 'low', maxTokens: 4000 },
-  tier_copy: { schema: 'TierCopyResult', effort: 'medium', maxTokens: 8000 },
-  review: { schema: 'ReviewResult', effort: 'medium', maxTokens: 8000 },
+// constrained: false → the schema is too large for structured outputs ("compiled grammar
+// is too large"), so it goes in the system prompt instead and Studio validates with zod.
+const MODE_CONFIG: Record<AiMode, { schema: keyof typeof SCHEMAS; effort: Effort; maxTokens: number; constrained: boolean }> = {
+  generate: { schema: 'AiDraft', effort: 'high', maxTokens: 32000, constrained: false },
+  import: { schema: 'AiDraft', effort: 'high', maxTokens: 32000, constrained: false },
+  extract_knowledge: { schema: 'KnowledgeExtract', effort: 'medium', maxTokens: 16000, constrained: true },
+  rewrite: { schema: 'RewriteResult', effort: 'low', maxTokens: 4000, constrained: true },
+  options: { schema: 'OptionsResult', effort: 'low', maxTokens: 4000, constrained: true },
+  tier_copy: { schema: 'TierCopyResult', effort: 'medium', maxTokens: 8000, constrained: true },
+  review: { schema: 'ReviewResult', effort: 'medium', maxTokens: 8000, constrained: true },
 };
+
+function schemaInstruction(schema: keyof typeof SCHEMAS): string {
+  return 'Respond with ONLY a single JSON object (no prose, no code fences) that matches this JSON Schema. ' +
+    'Include every property; use "" / 0 / [] / false for anything not applicable. ' +
+    'Where a description says {enum: [...]}, use one of those exact values.\n\n' +
+    JSON.stringify(SCHEMAS[schema]);
+}
 
 const GENERATE_PHASES: [string, string][] = [
   ['"designNotes"', 'Finishing up'],
@@ -154,10 +164,17 @@ Deno.serve(async (req) => {
           model: MODEL,
           max_tokens: conf.maxTokens,
           thinking: { type: 'adaptive' },
-          output_config: { effort, format: { type: 'json_schema', schema: SCHEMAS[conf.schema] } },
+          output_config: conf.constrained
+            ? { effort, format: { type: 'json_schema', schema: SCHEMAS[conf.schema] } }
+            : { effort },
           betas: ['server-side-fallback-2026-07-01'],
           fallbacks: 'default',
-          system: [{ type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } }],
+          system: conf.constrained
+            ? [{ type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } }]
+            : [
+                { type: 'text', text: SYSTEM_PROMPT },
+                { type: 'text', text: schemaInstruction(conf.schema), cache_control: { type: 'ephemeral' } },
+              ],
           messages: [{ role: 'user', content }],
         });
 
@@ -193,7 +210,7 @@ Deno.serve(async (req) => {
         const out = msg.content.filter((b) => b.type === 'text').map((b) => (b as { text: string }).text).join('');
         let data: unknown;
         try {
-          data = JSON.parse(out);
+          data = extractJsonObject(out);
         } catch {
           throw new Error("Claude's response couldn't be read. Please try again.");
         }

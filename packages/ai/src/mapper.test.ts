@@ -3,6 +3,7 @@ import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 import { computeResults } from '@qq/engine';
 import type { ProductSnapshot } from '@qq/schema';
 import { draftToDefinition, summarizeDefinition } from './mapper';
+import { extractJsonObject } from './json';
 import * as S from './schemas';
 import { AiDraftSchema, type AiDraft, type AiOption, type AiQuestion } from './schemas';
 import { contextBlocks, generateTask, SYSTEM_PROMPT } from './prompts';
@@ -74,6 +75,21 @@ describe('structured-output schemas', () => {
       expect(json).not.toMatch(/"minimum"|"maximum"|"minLength"|"maxLength"/);
     });
   }
+});
+
+describe('extractJsonObject', () => {
+  it('parses plain, fenced, and prose-wrapped JSON', () => {
+    expect(extractJsonObject('{"a":1}')).toEqual({ a: 1 });
+    expect(extractJsonObject('```json\n{"a":1}\n```')).toEqual({ a: 1 });
+    expect(extractJsonObject('Here is the draft:\n{"a":{"b":[1]}}\nDone.')).toEqual({ a: { b: [1] } });
+  });
+  it('throws when there is no JSON object', () => {
+    expect(() => extractJsonObject('no json here')).toThrow();
+    expect(() => extractJsonObject('{"a":')).toThrow();
+  });
+  it('round-trips the fixture draft through the schema', () => {
+    expect(AiDraftSchema.safeParse(extractJsonObject(`\`\`\`json\n${JSON.stringify(baseDraft())}\n\`\`\``)).success).toBe(true);
+  });
 });
 
 describe('draftToDefinition', () => {

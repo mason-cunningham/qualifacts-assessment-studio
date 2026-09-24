@@ -114,6 +114,9 @@ export async function runAi<R extends AiRequest>(
 
   if (!final) throw new AiError('The AI response ended early (the request may have timed out). Try again with fewer questions or less context.');
   const parsed = SCHEMA[req.mode].safeParse(final.data);
-  if (!parsed.success) throw new AiError('The AI returned an unexpected format. Please try again.');
+  if (!parsed.success) {
+    const path = parsed.error.issues[0]?.path.join('.');
+    throw new AiError(`The AI returned an unexpected format${path ? ` (${path})` : ''}. Please try again.`);
+  }
   return { data: parsed.data as ResultFor<R>, requestId: final.requestId, usage: final.usage };
 }

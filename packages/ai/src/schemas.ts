@@ -10,6 +10,11 @@ import { z } from 'zod/v4';
 //  • No numeric/string constraints, no recursion, additionalProperties:false.
 //  (enforced by packages/ai/src/mapper.test.ts)
 //
+// AiDraft is too large for constrained decoding (the API rejects it with
+// "compiled grammar is too large"), so generate/import send its JSON Schema as
+// a prompt instruction instead and Studio validates the result with zod. The
+// smaller editor-helper schemas below still use output_config.format.
+//
 // Imported by BOTH the Supabase Edge Function (bundled) and Studio. Keep this
 // file free of Node/browser-specific imports.
 // ─────────────────────────────────────────────────────────────────────────────
