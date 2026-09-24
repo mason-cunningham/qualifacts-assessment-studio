@@ -1,0 +1,167 @@
+{
+  "schemaVersion": 1,
+  "meta": {
+    "title": "Eligibility Health Check",
+    "description": "A self-audit for behavioral health organizations: pinpoint eligibility gaps and what to fix first.",
+    "productLine": "RCMS"
+  },
+  "theme": { "accent": "teal" },
+  "intro": {
+    "eyebrow": "Free Assessment",
+    "headline": "Eligibility Health Check",
+    "subheadline": "A Self-Audit for Behavioral Health Organizations",
+    "body": "Most eligibility problems show up as a slow, steady bleed: denied claims, rework, and revenue you didn't know you were losing. This 2-minute assessment will help you pinpoint where your gaps are and what to fix first.",
+    "bullets": [],
+    "startLabel": "Start Your Assessment",
+    "estimatedMinutes": 2
+  },
+  "sections": [
+    { "id": "s1", "name": "Intake & Registration" },
+    { "id": "s2", "name": "Pre-Visit Eligibility" },
+    { "id": "s3", "name": "Real-Time Verification" },
+    { "id": "s4", "name": "Denial Investigation" },
+    { "id": "s5", "name": "Data Integrity" },
+    { "id": "s6", "name": "Staff & Ownership" },
+    { "id": "s7", "name": "Visibility & Reporting" }
+  ],
+  "questions": [
+    { "id": "e1", "sectionId": "s1", "type": "single", "shortLabel": "Verification ownership", "text": "Who owns insurance verification at intake?", "options": [
+      { "id": "e1a", "label": "A designated role with clear accountability", "points": 3 },
+      { "id": "e1b", "label": "It's generally handled by intake staff, but ownership varies", "points": 2 },
+      { "id": "e1c", "label": "It depends on the day — whoever is available", "points": 1 } ] },
+    { "id": "e2", "sectionId": "s1", "type": "single", "shortLabel": "Demographics validated", "text": "Are patient demographics validated against payer records before the first visit?", "options": [
+      { "id": "e2a", "label": "Yes — we verify against the payer before the first appointment", "points": 3 },
+      { "id": "e2b", "label": "Sometimes, but it's not a required step in our workflow", "points": 2 },
+      { "id": "e2c", "label": "No — we enter what the patient reports and correct later if needed", "points": 1 } ] },
+    { "id": "e3", "sectionId": "s1", "type": "single", "shortLabel": "Secondary coverage", "text": "Do you capture secondary and tertiary coverage at intake?", "options": [
+      { "id": "e3a", "label": "Yes — we collect and document all known coverage", "points": 3 },
+      { "id": "e3b", "label": "We ask, but it's not consistently captured", "points": 2 },
+      { "id": "e3c", "label": "We typically only collect primary coverage", "points": 1 } ] },
+    { "id": "e4", "sectionId": "s2", "type": "single", "shortLabel": "Check lead time", "text": "How far in advance do you run eligibility checks before appointments?", "options": [
+      { "id": "e4a", "label": "3–5 days out, with time to act on exceptions", "points": 3 },
+      { "id": "e4b", "label": "The night before or morning of", "points": 2 },
+      { "id": "e4c", "label": "We don't run them consistently before visits", "points": 1 } ] },
+    { "id": "e5", "sectionId": "s2", "type": "single", "shortLabel": "Inactive result follow-up", "text": "When a batch check returns an inactive result, what happens next?", "options": [
+      { "id": "e5a", "label": "There's a defined escalation path and a clear owner", "points": 3 },
+      { "id": "e5b", "label": "Someone follows up, but the process isn't formalized", "points": 2 },
+      { "id": "e5c", "label": "It often falls through the cracks until the claim denies", "points": 1 } ] },
+    { "id": "e6", "sectionId": "s2", "type": "single", "shortLabel": "Benefit detail review", "text": "Are you reviewing benefit details (plan type, copay, deductible) — or just confirming active coverage?", "options": [
+      { "id": "e6a", "label": "We review full benefit details and document them", "points": 3 },
+      { "id": "e6b", "label": "We glance at details but mainly check active/inactive", "points": 2 },
+      { "id": "e6c", "label": "We only check whether coverage is active", "points": 1 } ] },
+    { "id": "e7", "sectionId": "s3", "type": "single", "shortLabel": "Real-time checks", "text": "Can your staff run real-time eligibility checks at the point of care?", "options": [
+      { "id": "e7a", "label": "Yes — and they're trained on when to use it", "points": 3 },
+      { "id": "e7b", "label": "The capability exists, but it's rarely used", "points": 2 },
+      { "id": "e7c", "label": "No — we rely entirely on batch checks", "points": 1 } ] },
+    { "id": "e8", "sectionId": "s3", "type": "single", "shortLabel": "Coverage change protocol", "text": "What happens when a patient arrives and their coverage status has changed since the batch check?", "options": [
+      { "id": "e8a", "label": "We have a documented protocol for handling discrepancies", "points": 3 },
+      { "id": "e8b", "label": "Staff figure it out case by case", "points": 2 },
+      { "id": "e8c", "label": "We usually find out after the claim denies", "points": 1 } ] },
+    { "id": "e9", "sectionId": "s3", "type": "single", "shortLabel": "High-volatility payers", "text": "Do you have a differentiated process for payers or programs with higher coverage volatility?", "options": [
+      { "id": "e9a", "label": "Yes — we treat high-volatility payers differently", "points": 3 },
+      { "id": "e9b", "label": "We're aware of which payers are volatile, but the process is the same", "points": 2 },
+      { "id": "e9c", "label": "No — all payers go through the same process", "points": 1 } ] },
+    { "id": "e10", "sectionId": "s4", "type": "single", "shortLabel": "Denial first step", "text": "When you get an eligibility-related denial, what's the first step?", "options": [
+      { "id": "e10a", "label": "Investigate root cause before resubmitting", "points": 3 },
+      { "id": "e10b", "label": "It depends on the staff member handling it", "points": 2 },
+      { "id": "e10c", "label": "Resubmit and hope for a different result", "points": 1 } ] },
+    { "id": "e11", "sectionId": "s4", "type": "single", "shortLabel": "Insurance discovery", "text": "Do you use insurance discovery tools to find coverage the patient didn't report?", "options": [
+      { "id": "e11a", "label": "Yes — it's part of our standard denial workflow", "points": 3 },
+      { "id": "e11b", "label": "We have access but don't use them consistently", "points": 2 },
+      { "id": "e11c", "label": "No — we don't have discovery tools in place", "points": 1 } ] },
+    { "id": "e12", "sectionId": "s4", "type": "single", "shortLabel": "Denial root-cause tracking", "text": "Are eligibility denials tracked by root cause, or just by denial code?", "options": [
+      { "id": "e12a", "label": "By root cause — we categorize and trend them", "points": 3 },
+      { "id": "e12b", "label": "We track denial codes but don't dig into root cause", "points": 2 },
+      { "id": "e12c", "label": "We don't have a structured way to track them", "points": 1 } ] },
+    { "id": "e13", "sectionId": "s5", "type": "single", "shortLabel": "Demographic audits", "text": "How often do you audit patient demographics for accuracy?", "options": [
+      { "id": "e13a", "label": "On a regular schedule — quarterly or more frequently", "points": 3 },
+      { "id": "e13b", "label": "Occasionally, usually when a problem surfaces", "points": 2 },
+      { "id": "e13c", "label": "We don't have a demographic audit process", "points": 1 } ] },
+    { "id": "e14", "sectionId": "s5", "type": "single", "shortLabel": "Where corrections happen", "text": "When a claim is rejected for a demographic mismatch, where does the correction happen?", "options": [
+      { "id": "e14a", "label": "In the patient record — we fix the source", "points": 3 },
+      { "id": "e14b", "label": "On the claim itself, but not always in the patient record", "points": 2 },
+      { "id": "e14c", "label": "Wherever is fastest — there's no standard", "points": 1 } ] },
+    { "id": "e15", "sectionId": "s5", "type": "single", "shortLabel": "Duplicate records", "text": "Do you have a process for identifying and merging duplicate patient records?", "options": [
+      { "id": "e15a", "label": "Yes — with regular reviews and a defined merge process", "points": 3 },
+      { "id": "e15b", "label": "We address duplicates when we stumble across them", "points": 2 },
+      { "id": "e15c", "label": "We know we have duplicates but haven't tackled it", "points": 1 } ] },
+    { "id": "e16", "sectionId": "s6", "type": "single", "shortLabel": "Eligibility owner", "text": "Is there a clearly designated owner for eligibility performance?", "options": [
+      { "id": "e16a", "label": "Yes — a named person or role with defined accountability", "points": 3 },
+      { "id": "e16b", "label": "Responsibility is shared but no single owner", "points": 2 },
+      { "id": "e16c", "label": "Ownership is unclear — it's spread across teams", "points": 1 } ] },
+    { "id": "e17", "sectionId": "s6", "type": "single", "shortLabel": "Workflow documentation", "text": "Are eligibility workflows documented well enough to survive staff turnover?", "options": [
+      { "id": "e17a", "label": "Yes — fully documented and regularly updated", "points": 3 },
+      { "id": "e17b", "label": "Partially — some documentation exists", "points": 2 },
+      { "id": "e17c", "label": "No — most of it lives in people's heads", "points": 1 } ] },
+    { "id": "e18", "sectionId": "s7", "type": "single", "shortLabel": "Denial dashboard", "text": "Do you have a dashboard showing eligibility denial rates by payer, program, or location?", "options": [
+      { "id": "e18a", "label": "Yes — and we review it regularly", "points": 3 },
+      { "id": "e18b", "label": "We have some reporting, but it's not centralized or routine", "points": 2 },
+      { "id": "e18c", "label": "No — we don't have eligibility-specific reporting", "points": 1 } ] },
+    { "id": "e19", "sectionId": "s7", "type": "single", "shortLabel": "Cost per denial", "text": "Do you know your current cost per eligibility denial (staff time, rework, write-offs)?", "options": [
+      { "id": "e19a", "label": "Yes — we've quantified it", "points": 3 },
+      { "id": "e19b", "label": "We have a rough sense but haven't calculated it", "points": 2 },
+      { "id": "e19c", "label": "No — we haven't measured it", "points": 1 } ] },
+    { "id": "e20", "sectionId": "s7", "type": "single", "shortLabel": "Unverified appointments view", "text": "Can you see how many upcoming appointments have unverified eligibility?", "options": [
+      { "id": "e20a", "label": "Yes — we have real-time visibility into upcoming appointment eligibility status", "points": 3 },
+      { "id": "e20b", "label": "We can pull it, but it requires manual effort", "points": 2 },
+      { "id": "e20c", "label": "No — we don't have that view", "points": 1 } ] }
+  ],
+  "scoring": {
+    "method": "points",
+    "overall": "allQuestions",
+    "tierBasis": "points",
+    "display": "points",
+    "tiers": [
+      { "id": "strong", "min": 48, "max": 60, "label": "Strong Foundation", "color": "#00B2A9",
+        "summary": "Your eligibility processes are well-built. Focus on the sections below to close remaining gaps." },
+      { "id": "room", "min": 33, "max": 47, "label": "Room to Improve", "color": "#E8A317",
+        "summary": "You have some good practices in place, but inconsistencies are likely costing you. The sections below show where." },
+      { "id": "gaps", "min": 0, "max": 32, "label": "Significant Gaps", "color": "#C6007E",
+        "summary": "Your eligibility process has meaningful gaps that are very likely contributing to preventable denials and lost revenue." }
+    ],
+    "sectionTiers": [
+      { "id": "solid", "min": 90, "max": 100, "label": "Solid", "color": "#00B2A9", "body": "This area looks solid. Keep it up." },
+      { "id": "some", "min": 60, "max": 89, "label": "Some Gaps", "color": "#E8A317", "body": "Some gaps here — worth tightening up." },
+      { "id": "priority", "min": 0, "max": 59, "label": "Priority", "color": "#C6007E", "body": "This is a priority area. It's likely contributing to preventable revenue loss." }
+    ]
+  },
+  "insights": [
+    { "id": "i_spread", "label": "Gaps everywhere", "when": { "type": "sectionsBelowCount", "pct": 60, "atLeast": 4 },
+      "body": "Your gaps are spread across multiple areas — and you're not alone. Many behavioral health organizations are running eligibility processes built for a simpler coverage environment. A co-sourced RCM partner can help close these gaps systematically." },
+    { "id": "i_upstream", "label": "Upstream data quality", "when": { "type": "weakestInclude", "sectionIds": ["s1", "s5"], "topN": 4 },
+      "body": "Your biggest opportunity is upstream data quality. The fixes here are process and training-oriented — and they're some of the fastest to implement." },
+    { "id": "i_workflow", "label": "Workflow timing", "when": { "type": "weakestInclude", "sectionIds": ["s2", "s3"], "topN": 4 },
+      "body": "Your gap is in workflow. You likely have the right information but aren't acting on it at the right time. The right tools can close this quickly." },
+    { "id": "i_visibility", "label": "Visibility & recovery", "when": { "type": "weakestInclude", "sectionIds": ["s4", "s7"], "topN": 4 },
+      "body": "Your issue is visibility and recovery. Revenue is leaking and you may not have full line of sight into how much. Discovery tools and denial analytics are the highest-leverage investment here." },
+    { "id": "i_fallback", "label": "Weakest section", "when": { "type": "always" },
+      "body": "Your most significant gap is in **{{weakestSection}}**. Strengthening this area will have the most immediate impact on your eligibility performance." }
+  ],
+  "recommendations": { "enabled": false, "rules": [] },
+  "leadCapture": {
+    "position": "beforeResults",
+    "heading": "Your results are ready",
+    "body": "Tell us where to send your detailed report.",
+    "fields": [
+      { "key": "first_name", "label": "First name", "type": "text", "required": true },
+      { "key": "last_name", "label": "Last name", "type": "text", "required": true },
+      { "key": "email", "label": "Work email", "type": "email", "required": true },
+      { "key": "organization", "label": "Company", "type": "text", "required": true }
+    ],
+    "submitLabel": "See My Results"
+  },
+  "results": {
+    "eyebrow": "Your Eligibility Score",
+    "showScore": true,
+    "showSectionBreakdown": true,
+    "sectionBreakdownHeading": "Breakdown by area",
+    "showGapList": false,
+    "showInsights": true,
+    "insightsHeading": "Where to focus",
+    "showRecommendations": false,
+    "footerNote": "Your detailed report will be sent to your email by our team within the next 3 days.",
+    "allowPdf": true,
+    "allowRetake": true
+  },
+  "products": []
+}

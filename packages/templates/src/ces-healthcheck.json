@@ -1,0 +1,193 @@
+{
+  "schemaVersion": 1,
+  "meta": {
+    "title": "Client Engagement Health Check",
+    "description": "See how much of the Client Engagement Suite you're actually using, and what to switch on next.",
+    "productLine": "CES"
+  },
+  "theme": { "accent": "teal" },
+  "intro": {
+    "eyebrow": "Client Engagement Suite",
+    "headline": "Client Engagement Health Check",
+    "subheadline": "See how much of CES you're actually using",
+    "body": "The Client Engagement Suite includes far more than most teams turn on. This 2-minute check looks at how you handle everyday client workflows today, scores how much of CES you're leveraging, and shows you, feature by feature, what you're missing out on and how to switch it on.",
+    "bullets": [],
+    "startLabel": "Start the Health Check",
+    "estimatedMinutes": 2
+  },
+  "sections": [
+    { "id": "about", "name": "About You", "showInResults": false },
+    { "id": "comms", "name": "Communication & Outreach" },
+    { "id": "intake", "name": "Intake & Onboarding" },
+    { "id": "records", "name": "Records & Transparency" },
+    { "id": "tele", "name": "Telehealth & Billing" }
+  ],
+  "questions": [
+    { "id": "platform", "sectionId": "about", "type": "single", "role": "segment", "shortLabel": "Platform", "text": "First, which platform are you on?", "options": [
+      { "id": "platform_carelogic", "label": "CareLogic" },
+      { "id": "platform_credible", "label": "Credible" } ] },
+
+    { "id": "c1", "sectionId": "comms", "type": "single", "shortLabel": "Reminder delivery visibility", "text": "How do you confirm a text, email, or voice reminder actually reached a client?", "options": [
+      { "id": "c1a", "label": "We can see delivery status, failures, and client replies in one place", "points": 10 },
+      { "id": "c1b", "label": "We check manually, or only find out when a client no-shows", "points": 5, "recommend": { "productIds": ["notification-analytics"], "badge": "Opportunity", "rank": 5 } },
+      { "id": "c1c", "label": "We have no real visibility once a reminder is sent", "points": 0, "recommend": { "productIds": ["notification-analytics"], "badge": "Top Priority", "rank": 0 } } ] },
+    { "id": "c2", "sectionId": "comms", "type": "single", "shortLabel": "Mass announcements", "text": "When you need to get an announcement, closure, or urgent alert to all clients at once, how do you do it?", "options": [
+      { "id": "c2a", "label": "We send one message to all clients through the portal (text/email/voice)", "points": 10 },
+      { "id": "c2b", "label": "We do it manually in batches, or only reach some clients", "points": 5, "recommend": { "productIds": ["broadcast-messaging"], "badge": "Opportunity", "rank": 5 } },
+      { "id": "c2c", "label": "Staff make individual calls or send messages one at a time", "points": 0, "recommend": { "productIds": ["broadcast-messaging"], "badge": "Top Priority", "rank": 0 } } ] },
+    { "id": "c3", "sectionId": "comms", "type": "single", "shortLabel": "Portal registration", "text": "How do clients register for the portal and start getting appointment reminders and form notifications?", "options": [
+      { "id": "c3a", "label": "They can register with their phone number and get reminders/notifications by text", "points": 10 },
+      { "id": "c3b", "label": "Registration is email-only, but we text some clients separately", "points": 5, "recommend": { "productIds": ["phone-registration"], "badge": "Opportunity", "rank": 5 } },
+      { "id": "c3c", "label": "Registration and notifications rely on email, so we can't reach clients without it", "points": 0, "recommend": { "productIds": ["phone-registration"], "badge": "Top Priority", "rank": 0 } } ] },
+
+    { "id": "c4", "sectionId": "intake", "type": "single", "shortLabel": "Intake forms", "text": "How do clients complete intake and required forms before their first visit?", "options": [
+      { "id": "c4a", "label": "Digitally through the portal — assigned and tracked by us", "points": 10 },
+      { "id": "c4b", "label": "A mix of digital and paper, depending on the form", "points": 5, "recommend": { "productIds": ["forms"], "badge": "Opportunity", "rank": 5 } },
+      { "id": "c4c", "label": "Mostly paper, or in-office on the day of the visit", "points": 0, "recommend": { "productIds": ["forms"], "badge": "Top Priority", "rank": 0 } } ] },
+    { "id": "c5", "sectionId": "intake", "type": "single", "shortLabel": "Signatures", "text": "How do clients and staff sign required documents?", "options": [
+      { "id": "c5a", "label": "Digitally inside the system, captured right in the clinical record", "points": 10 },
+      { "id": "c5b", "label": "With a third-party e-sign tool, then uploaded back in", "points": 5, "recommend": { "productIds": ["esignatures"], "badge": "Opportunity", "rank": 5 } },
+      { "id": "c5c", "label": "On paper — or signatures are often collected late or missing", "points": 0, "recommend": { "productIds": ["esignatures"], "badge": "Top Priority", "rank": 0 } } ] },
+    { "id": "c6", "sectionId": "intake", "type": "single", "shortLabel": "Demographic updates", "text": "When a client updates their demographic info, how does it get into the EHR?", "options": [
+      { "id": "c6a", "label": "It flows from the portal into structured EHR fields for review", "points": 10 },
+      { "id": "c6b", "label": "Staff re-key it manually from what the client provides", "points": 5, "recommend": { "productIds": ["demographic-mapping"], "badge": "Opportunity", "rank": 5 } },
+      { "id": "c6c", "label": "We collect it on paper and clean it up later", "points": 0, "recommend": { "productIds": ["demographic-mapping"], "badge": "Top Priority", "rank": 0 } } ] },
+
+    { "id": "c7", "sectionId": "records", "type": "single", "shortLabel": "Client record access", "text": "Can your clients view their own health record details (meds, allergies, providers) themselves?", "options": [
+      { "id": "c7a", "label": "Yes — they have secure, read-only access in the portal", "points": 10 },
+      { "id": "c7b", "label": "Only if they call or request records from staff", "points": 5, "recommend": { "productIds": ["client-records"], "badge": "Opportunity", "rank": 5 } },
+      { "id": "c7c", "label": "No — staff field every request for record details", "points": 0, "recommend": { "productIds": ["client-records"], "badge": "Top Priority", "rank": 0 } } ] },
+    { "id": "c8", "sectionId": "records", "type": "single", "shortLabel": "Clinical data export", "text": "How do clients get a shareable copy of their clinical data (e.g., a CCDA summary of care)?", "options": [
+      { "id": "c8a", "label": "They request and view a structured export right in the portal", "points": 10 },
+      { "id": "c8b", "label": "We generate and send files manually when asked", "points": 5, "recommend": { "productIds": ["data-export"], "badge": "Opportunity", "rank": 5 } },
+      { "id": "c8c", "label": "We fax, email PDFs, or handle it ad hoc", "points": 0, "recommend": { "productIds": ["data-export"], "badge": "Top Priority", "rank": 0 } } ] },
+    { "id": "c9", "sectionId": "records", "type": "single", "shortLabel": "Restriction requests", "text": "How do clients submit privacy or data-sharing restriction requests?", "options": [
+      { "id": "c9a", "label": "Through a structured request in the portal, routed to us for review", "points": 10 },
+      { "id": "c9b", "label": "Informally by phone, email, or paperwork", "points": 5, "recommend": { "productIds": ["request-restriction"], "badge": "Opportunity", "rank": 5 } },
+      { "id": "c9c", "label": "We don't have a consistent way to capture these", "points": 0, "recommend": { "productIds": ["request-restriction"], "badge": "Top Priority", "rank": 0 } } ] },
+
+    { "id": "c10", "sectionId": "tele", "type": "single", "shortLabel": "Telehealth session proof", "text": "How do you confirm a telehealth session actually happened and how long it lasted?", "options": [
+      { "id": "c10a", "label": "We have session-level logs (join/exit/wait times) we can export", "points": 10 },
+      { "id": "c10b", "label": "We rely on provider notes or manual follow-up", "points": 5, "recommend": { "productIds": ["telehealth-analytics"], "badge": "Opportunity", "rank": 5 } },
+      { "id": "c10c", "label": "We have no reliable record once the visit is over", "points": 0, "recommend": { "productIds": ["telehealth-analytics"], "badge": "Top Priority", "rank": 0 } } ] },
+    { "id": "c11", "sectionId": "tele", "type": "single", "shortLabel": "Client balance & payment", "text": "How do clients see their balance and pay it?", "options": [
+      { "id": "c11a", "label": "Directly in the portal — balances sync and they pay online", "points": 10 },
+      { "id": "c11b", "label": "Through a separate billing portal or mailed statements", "points": 5, "recommend": { "productIds": ["client-billing"], "badge": "Opportunity", "rank": 5 } },
+      { "id": "c11c", "label": "They call, mail checks, or pay in person", "points": 0, "recommend": { "productIds": ["client-billing"], "badge": "Top Priority", "rank": 0 } } ] }
+  ],
+  "scoring": {
+    "method": "points",
+    "overall": "allQuestions",
+    "tierBasis": "percent",
+    "display": "percent",
+    "tiers": [
+      { "id": "power", "min": 80, "max": 100, "label": "CES Power User", "color": "#00B2A9",
+        "summary": "You're getting strong value from CES — there are just a few capabilities left to switch on." },
+      { "id": "grow", "min": 50, "max": 79, "label": "Room to Grow", "color": "#E8A317",
+        "summary": "You're using some of CES, but you're leaving real capabilities on the table. Here's what to turn on next." },
+      { "id": "big", "min": 0, "max": 49, "label": "Big Opportunity", "color": "#C6007E",
+        "summary": "Most of CES is still untapped for your team. The features below could transform your client experience." }
+    ],
+    "sectionTiers": [
+      { "id": "st_hi", "min": 80, "max": 100, "label": "In use", "color": "#00B2A9" },
+      { "id": "st_mid", "min": 50, "max": 79, "label": "Partial", "color": "#E8A317" },
+      { "id": "st_lo", "min": 0, "max": 49, "label": "Untapped", "color": "#C6007E" }
+    ]
+  },
+  "insights": [],
+  "recommendations": {
+    "enabled": true,
+    "heading": "What you're missing out on",
+    "intro": "You're only using **{{pct}}%** of your client engagement capabilities with CES. Here are the **{{recommendationCount}}** workflows you're missing out on, ranked by impact.",
+    "emptyMessage": "Impressive: you're already using every CES capability we checked. There's nothing left to turn on.",
+    "rules": []
+  },
+  "leadCapture": {
+    "position": "beforeResults",
+    "heading": "Where should we send your results?",
+    "fields": [
+      { "key": "email", "label": "Work email", "type": "email", "required": true, "placeholder": "jane@example.com" }
+    ],
+    "submitLabel": "See My Results"
+  },
+  "results": {
+    "eyebrow": "Your CES Utilization",
+    "showScore": true,
+    "showSectionBreakdown": false,
+    "showGapList": false,
+    "showInsights": false,
+    "showRecommendations": true,
+    "footerNote": "Each feature above is one QCC ticket away from being live for your team. Recordings and slides for every CES feature live in the Library tab in Community: search \"Client Engagement\" in your Learning Center.",
+    "secondaryCta": { "label": "Open the Learning Center", "url": "https://lms.qualifacts.com/login/105/" },
+    "allowPdf": true,
+    "allowRetake": true
+  },
+  "products": [
+    { "id": "esignatures", "name": "eSignatures", "productLine": "CES", "priority": 1,
+      "imageUrl": "https://qualifacts-ces-healthcheck.netlify.app/ces-assets/esignatures.png",
+      "whatItDoes": "eSignatures let clients and staff sign required treatment plans and service documents digitally within the portal. Unlike third-party tools that generate standalone PDFs, signature data is captured directly in the system — including who signed, when, and which form was completed.",
+      "whyItMatters": "When signatures are collected outside the system, documentation can be delayed, misplaced, or uploaded incorrectly — creating compliance gaps and billing risk.",
+      "benefits": ["Capture signatures directly in the clinical record", "Prevent billing delays and denied claims caused by missing or late signatures", "Reduce compliance and audit risk with clear, timestamped signature records", "Eliminate manual uploads and rework tied to external signature tools", "Give clients an easy, familiar way to sign documents online"],
+      "ctaLabel": "Submit QCC Case to Enable", "ctaUrl": "https://carecenter.qualifacts.com/s/login/" },
+    { "id": "forms", "name": "Forms & Intake Workflows", "productLine": "CES", "priority": 2,
+      "imageUrl": "https://qualifacts-ces-healthcheck.netlify.app/ces-assets/forms.png",
+      "whatItDoes": "Digital Forms and Intake Workflows can be assigned in the EHR and completed by the client in the portal. Clients complete modern, mobile-friendly forms designed for clarity and ease of use.",
+      "whyItMatters": "Abandoned intake paperwork slows down care, creates rework for staff, and often leads to rescheduled appointments. Replace paper forms and hard-to-use EHR layouts with a guided, client-friendly experience that improves completion rates and reduces delays.",
+      "benefits": ["Get clients fully prepared before their first visit with guided forms", "Ensure intake forms are completed before visits, reducing last-minute delays", "Improve completion rates with modern, easy-to-use digital forms", "Reduce staff follow-up and manual data entry tied to missing paperwork", "Create a smoother onboarding experience for new and returning clients"],
+      "ctaLabel": "Submit QCC Case to Enable", "ctaUrl": "https://carecenter.qualifacts.com/s/login/" },
+    { "id": "notification-analytics", "name": "Notification Analytics", "productLine": "CES", "priority": 3,
+      "imageUrl": "https://qualifacts-ces-healthcheck.netlify.app/ces-assets/notification-analytics.png",
+      "whatItDoes": "Notification Analytics gives your team visibility into the SMS, email, and voice notifications sent to clients. You can view delivery status, failure reasons, timestamps, and client replies — all in one place — without submitting a support case.",
+      "whyItMatters": "It lets you determine with certainty whether a notification actually reached a client, or whether intervention is needed (e.g., incorrect email, full inbox, marked as spam).",
+      "benefits": ["See exactly what happened to every appointment reminder", "Identify failed or undelivered reminders in seconds", "Understand why a message didn't go through", "Troubleshoot missed appointments with confidence", "Reduce reliance on support for basic notification questions"],
+      "ctaLabel": "Submit QCC Case to Enable", "ctaUrl": "https://carecenter.qualifacts.com/s/login/" },
+    { "id": "client-billing", "name": "Client Billing Module", "productLine": "CES", "priority": 4,
+      "imageUrl": "https://qualifacts-ces-healthcheck.netlify.app/ces-assets/client-billing.png",
+      "whatItDoes": "Clients view their balance and make payments directly in the portal. Balances sync from the statement batch process, giving clients one clear place to see what they owe and pay — without separate logins or paper statements.",
+      "whyItMatters": "When billing lives outside the portal, clients miss payments or get confused, and staff are left following up. Bringing billing into the portal reduces friction for clients and cuts down on manual follow-up for staff.",
+      "benefits": ["Make it easy for clients to understand and pay their balance in the portal", "Position billing as client convenience and staff relief, not finance complexity", "Replace disconnected billing portals or mailed statements", "Fits naturally after Forms + eSignatures (complete → sign → bill)", "Reinforce the portal as the single destination for the client experience"],
+      "ctaLabel": "Submit QCC Case to Enable", "ctaUrl": "https://carecenter.qualifacts.com/s/login/" },
+    { "id": "demographic-mapping", "name": "Demographic Data Mapping", "productLine": "CES", "priority": 5,
+      "imageUrl": "https://qualifacts-ces-healthcheck.netlify.app/ces-assets/demographic-mapping.png",
+      "whatItDoes": "Clients enter and update demographic information directly through the portal. Select fields from portal forms are mapped to structured EHR fields, so data can be reviewed and accepted before syncing.",
+      "whyItMatters": "Manual data entry creates inefficiencies, inconsistencies, and avoidable clean-up work. Small variations in how data is entered can impact reporting, billing, and even create duplicate records. This feature helps you capture cleaner data from the start.",
+      "benefits": ["Streamline intake by sending demographic data straight to the EHR", "Reduce manual data entry and clean-up by capturing demographics digitally", "Improve data accuracy and consistency across client records", "Support cleaner reporting and billing with structured, standardized data", "Save staff time previously spent correcting or re-entering information"],
+      "ctaLabel": "Submit QCC Case to Enable", "ctaUrl": "https://carecenter.qualifacts.com/s/login/" },
+    { "id": "broadcast-messaging", "name": "Broadcast Messaging", "productLine": "CES", "priority": 6,
+      "imageUrl": "https://qualifacts-ces-healthcheck.netlify.app/ces-assets/broadcast-messaging.png",
+      "whatItDoes": "Broadcast Messaging lets staff send a single message to all clients at once through the portal using text, email, or voice. It's designed for announcements, marketing, service updates, policy changes, reminders, or urgent alerts.",
+      "whyItMatters": "When important updates need to go out quickly, manual calls and emails are time-consuming and inconsistent. Broadcast Messaging gives you a reliable way to communicate broadly and instantly.",
+      "benefits": ["Reach all clients at once without hours of manual outreach", "Send urgent alerts and updates quickly during closures or changes", "Eliminate hours of manual calls and emails", "Improve consistency of communication across your client population", "Keep clients informed and prepared, reducing confusion and missed appointments"],
+      "ctaLabel": "Submit QCC Case to Enable", "ctaUrl": "https://carecenter.qualifacts.com/s/login/" },
+    { "id": "telehealth-analytics", "name": "Telehealth Analytics", "productLine": "CES", "priority": 7,
+      "imageUrl": "https://qualifacts-ces-healthcheck.netlify.app/ces-assets/telehealth-analytics.png",
+      "whatItDoes": "Session-level logs for telehealth appointments — showing when providers and clients joined and exited, how long they waited, and whether the session occurred. Data can be exported via CSV for audits, supervision, or internal tracking.",
+      "whyItMatters": "Without session data, teams rely on memory or manual follow-ups to confirm whether a telehealth appointment happened. Telehealth Analytics gives clinical, operational, and compliance teams a reliable source of truth.",
+      "benefits": ["Clear visibility into every virtual visit", "Verify session attendance for audits, compliance, or supervision", "Confirm timing and duration of telehealth visits without back-and-forth", "Reduce administrative follow-ups when appointments are missed or disputed", "Support accountability and QA with objective, timestamped data"],
+      "ctaLabel": "Submit QCC Case to Enable", "ctaUrl": "https://carecenter.qualifacts.com/s/login/" },
+    { "id": "client-records", "name": "Client Personal Records", "productLine": "CES", "priority": 8,
+      "imageUrl": "https://qualifacts-ces-healthcheck.netlify.app/ces-assets/client-records.png",
+      "whatItDoes": "Client Personal Records gives clients secure, read-only access to key information from their health record directly in the portal — demographics, medications, allergies, providers, and other personal health information — without needing to request records or contact staff.",
+      "whyItMatters": "When clients don't have visibility into their own records, staff spend time answering basic questions or fulfilling record requests. Client Personal Records increases transparency while reducing administrative follow-up.",
+      "benefits": ["Give clients secure, self-service access to their key health information", "Reduce phone calls and messages asking for basic record details", "Improve transparency and trust by sharing information clients expect to see"],
+      "ctaLabel": "Submit QCC Case to Enable", "ctaUrl": "https://carecenter.qualifacts.com/s/login/" },
+    { "id": "data-export", "name": "Request Data Export (CCDA)", "productLine": "CES", "priority": 9,
+      "imageUrl": "https://qualifacts-ces-healthcheck.netlify.app/ces-assets/data-export.png",
+      "whatItDoes": "Health records can be securely shared and viewed directly in the portal. Instead of downloading raw CCDA files, information is presented in clear, readable sections — like medications, diagnoses, and care plans — making it easier for staff and clients to understand and use.",
+      "whyItMatters": "When client data lives in silos, care teams are forced to rely on PDFs, faxes, or incomplete records. CCDA integration helps you share critical information across providers without delays, rework, or manual handoffs.",
+      "benefits": ["Structured health records that move with the client", "Improve continuity of care when clients transition between providers or programs", "Reduce manual record sharing like faxing or emailing PDFs", "Support care coordination and compliance with standards-based data exchange", "Give clients access to their own health records in a clear, usable format"],
+      "ctaLabel": "Submit QCC Case to Enable", "ctaUrl": "https://carecenter.qualifacts.com/s/login/" },
+    { "id": "request-restriction", "name": "Request for Restriction", "productLine": "CES", "priority": 10,
+      "imageUrl": "https://qualifacts-ces-healthcheck.netlify.app/ces-assets/request-restriction.png",
+      "whatItDoes": "Request for Restriction lets clients submit privacy restriction requests directly through the portal. Requests are routed to your organization for review and handling, helping teams manage client preferences around data sharing with payers, family members, or other third parties in a structured way.",
+      "whyItMatters": "Without a self-service option, restriction requests are often handled informally through phone calls, emails, or paperwork — making them easy to miss or inconsistently tracked. This feature centralizes requests in one place and supports a more reliable, compliant process.",
+      "benefits": ["Let clients control how their health information is shared", "Centralize restriction requests instead of ad-hoc, manual processes", "Support a more reliable, consistent, and compliant workflow", "Signal compliance alignment without deep HIPAA or ONC complexity", "Fits naturally alongside CCDA and Analytics as part of trust + transparency"],
+      "ctaLabel": "Submit QCC Case to Enable", "ctaUrl": "https://carecenter.qualifacts.com/s/login/" },
+    { "id": "phone-registration", "name": "Phone Number-Based Registration", "productLine": "CES", "priority": 11,
+      "imageUrl": "https://qualifacts-ces-healthcheck.netlify.app/ces-assets/phone-number-reg.png",
+      "whatItDoes": "Phone Number Registration lets clients use their phone number to register their portal account and receive appointment reminders and form notifications. Instead of relying on email, clients can sign up and stay connected via their phone number.",
+      "whyItMatters": "When account registration and notifications depend on email alone, clients without reliable email access are hard to reach — leading to missed reminders and incomplete sign-ups. Phone-based registration meets clients where they are and improves the odds that reminders and notifications actually land.",
+      "benefits": ["Let clients register using the contact method they use most", "Reach clients who don't reliably check or use email", "Deliver appointment reminders and form notifications by text", "Reduce missed appointments tied to unseen email reminders", "Simplify account setup to improve portal adoption"],
+      "ctaLabel": "Submit QCC Case to Enable", "ctaUrl": "https://carecenter.qualifacts.com/s/login/" }
+  ]
+}

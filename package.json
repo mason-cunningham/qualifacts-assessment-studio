@@ -1,0 +1,23 @@
+{
+  "name": "qualifacts-assessment-studio",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev:studio": "npm run dev -w @qq/studio",
+    "dev:runner": "npm run dev -w @qq/runner",
+    "build": "npm run build -w @qq/runner && npm run build -w @qq/studio",
+    "build:runner": "npm run build -w @qq/runner",
+    "build:studio": "npm run build -w @qq/studio",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc -p apps/runner && tsc -p apps/studio"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.8"
+  }
+}

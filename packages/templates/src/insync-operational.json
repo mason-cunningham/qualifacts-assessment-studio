@@ -1,0 +1,195 @@
+{
+  "schemaVersion": 1,
+  "meta": {
+    "title": "InSync Operational Assessment",
+    "description": "Are you getting everything you can out of your Qualifacts partnership?",
+    "productLine": "InSync"
+  },
+  "theme": { "accent": "teal" },
+  "intro": {
+    "eyebrow": "InSync Operational Assessment",
+    "headline": "InSync Operational Assessment",
+    "subheadline": "Are you getting everything you can out of your Qualifacts partnership?",
+    "body": "Most InSync customers are only using a fraction of what their Qualifacts partnership offers. This 4-minute check covers five areas (clinical documentation, grants tracking, revenue cycle management, measurement-based care, and appointment reminders) to pinpoint your hidden opportunities and the add-ons that close them.",
+    "bullets": [],
+    "startLabel": "Start the Opportunity Check",
+    "estimatedMinutes": 4
+  },
+  "sections": [
+    { "id": "cd", "name": "Clinical Documentation", "productIds": ["p_iq_doc"] },
+    { "id": "gm", "name": "Grant Management", "productIds": ["p_grants"], "naBehavior": "monitor" },
+    { "id": "rcm", "name": "Revenue Cycle Management", "productIds": ["p_rcms"] },
+    { "id": "mbc", "name": "Measurement-Based Care", "productIds": ["p_greenspace"], "naBehavior": "monitor" },
+    { "id": "ar", "name": "Appointment Reminders", "productIds": ["p_reminders"] },
+    { "id": "wrap", "name": "Wrap-Up", "showInResults": false }
+  ],
+  "questions": [
+    { "id": "cd1", "sectionId": "cd", "type": "single", "shortLabel": "Documentation turnaround", "text": "After a session, when do providers finish their notes?", "options": [
+      { "id": "cd1a", "label": "Same day" },
+      { "id": "cd1b", "label": "A day or two behind", "isGap": true },
+      { "id": "cd1c", "label": "Chronically behind", "isGap": true },
+      { "id": "cd1d", "label": "They chart during sessions and it pulls focus off the client", "isGap": true } ] },
+    { "id": "cd2", "sectionId": "cd", "type": "single", "shortLabel": "Time spent documenting", "text": "Roughly how much of a provider's day goes to documentation vs client time?", "options": [
+      { "id": "cd2a", "label": "Under 20%" },
+      { "id": "cd2b", "label": "20 to 40%" },
+      { "id": "cd2c", "label": "Over 40%", "isGap": true },
+      { "id": "cd2d", "label": "Too much but not sure", "isGap": true } ] },
+    { "id": "cd3", "sectionId": "cd", "type": "single", "shortLabel": "After-hours charting", "text": "Are providers finishing notes after hours or on personal time?", "options": [
+      { "id": "cd3a", "label": "Rarely" },
+      { "id": "cd3b", "label": "Sometimes" },
+      { "id": "cd3c", "label": "Regularly", "isGap": true } ] },
+
+    { "id": "gm_g", "sectionId": "gm", "type": "single", "role": "gate", "text": "Does your organization manage grant or contract funding?", "options": [
+      { "id": "gm_g_yes", "label": "Yes" },
+      { "id": "gm_g_no", "label": "No", "notApplicable": true },
+      { "id": "gm_g_ns", "label": "Not sure", "notApplicable": true } ] },
+    { "id": "gm1", "sectionId": "gm", "type": "single", "shortLabel": "Grant tracking method",
+      "showIf": { "mode": "all", "conditions": [ { "questionId": "gm_g", "op": "in", "optionIds": ["gm_g_yes"] } ] },
+      "text": "If your organization uses grant or contract funding, how do you currently track related services, requirements, and reporting today?", "options": [
+      { "id": "gm1a", "label": "Mostly manual tracking through spreadsheets or shared documents", "isGap": true },
+      { "id": "gm1b", "label": "Through our EHR or practice management system" },
+      { "id": "gm1c", "label": "Through a separate grant management tool", "isGap": true },
+      { "id": "gm1d", "label": "Through reports pulled from multiple systems", "isGap": true },
+      { "id": "gm1e", "label": "We do not currently track this in a structured way", "isGap": true },
+      { "id": "gm1f", "label": "Not applicable" } ] },
+    { "id": "gm2", "sectionId": "gm", "type": "single", "shortLabel": "Write-offs / reconciliation",
+      "showIf": { "mode": "all", "conditions": [ { "questionId": "gm_g", "op": "in", "optionIds": ["gm_g_yes"] } ] },
+      "text": "Have you ever had to write off or manually reconcile grant-funded services to force a balance to zero?", "options": [
+      { "id": "gm2a", "label": "Never" },
+      { "id": "gm2b", "label": "Occasionally", "isGap": true },
+      { "id": "gm2c", "label": "Routinely", "isGap": true },
+      { "id": "gm2d", "label": "Not applicable" } ] },
+    { "id": "gm3", "sectionId": "gm", "type": "single", "shortLabel": "Audit-ready reporting",
+      "showIf": { "mode": "all", "conditions": [ { "questionId": "gm_g", "op": "in", "optionIds": ["gm_g_yes"] } ] },
+      "text": "Could you produce audit-ready grant utilization reporting on short notice?", "options": [
+      { "id": "gm3a", "label": "Easily" },
+      { "id": "gm3b", "label": "With effort", "isGap": true },
+      { "id": "gm3c", "label": "Not confidently", "isGap": true },
+      { "id": "gm3d", "label": "Not applicable" } ] },
+    { "id": "gm4", "sectionId": "gm", "type": "single", "shortLabel": "Funder-required surveys",
+      "showIf": { "mode": "all", "conditions": [ { "questionId": "gm_g", "op": "in", "optionIds": ["gm_g_yes"] } ] },
+      "text": "Do any funders require you to survey clients at set intervals and report results back?", "options": [
+      { "id": "gm4a", "label": "No" },
+      { "id": "gm4b", "label": "Yes and it's smooth" },
+      { "id": "gm4c", "label": "Yes and it's a manual scramble", "isGap": true },
+      { "id": "gm4d", "label": "Not applicable" } ] },
+
+    { "id": "rcm1", "sectionId": "rcm", "type": "single", "shortLabel": "Collections confidence", "text": "How confident are you that you're collecting everything you're owed?", "options": [
+      { "id": "rcm1a", "label": "Very" },
+      { "id": "rcm1b", "label": "We leave some on the table", "isGap": true },
+      { "id": "rcm1c", "label": "Denials are a constant problem", "isGap": true },
+      { "id": "rcm1d", "label": "Limited visibility", "isGap": true } ] },
+    { "id": "rcm2", "sectionId": "rcm", "type": "single", "shortLabel": "Billing continuity risk", "text": "What happens to billing continuity when a key biller is out or leaves?", "options": [
+      { "id": "rcm2a", "label": "No disruption" },
+      { "id": "rcm2b", "label": "It slows down", "isGap": true },
+      { "id": "rcm2c", "label": "It's a real risk", "isGap": true } ] },
+    { "id": "rcm3", "sectionId": "rcm", "type": "single", "shortLabel": "Denials & appeals", "text": "How are you handling denials and appeals today?", "options": [
+      { "id": "rcm3a", "label": "Proactive, caught before submission" },
+      { "id": "rcm3b", "label": "Reactive after denial", "isGap": true },
+      { "id": "rcm3c", "label": "We don't have capacity to work them all", "isGap": true } ] },
+    { "id": "rcm4", "sectionId": "rcm", "type": "single", "shortLabel": "Credentialing tracking", "text": "Credentialing: are enrollments and revalidations tracked so you can bill on time?", "options": [
+      { "id": "rcm4a", "label": "Yes, proactively" },
+      { "id": "rcm4b", "label": "Manually and it slips", "isGap": true },
+      { "id": "rcm4c", "label": "It causes denials or delays", "isGap": true } ] },
+
+    { "id": "mbc_g", "sectionId": "mbc", "type": "single", "role": "gate", "text": "Do your payers, funders, or accreditors require outcomes, MBC, VBC, or MIPS reporting today, or expect to soon?", "options": [
+      { "id": "mbc_g_no", "label": "Not that we know of", "notApplicable": true },
+      { "id": "mbc_g_soon", "label": "Expected soon" },
+      { "id": "mbc_g_yes", "label": "Yes, currently" } ] },
+    { "id": "mbc1", "sectionId": "mbc", "type": "single", "shortLabel": "Outcomes collection", "text": "How do you collect and report client outcomes now?", "options": [
+      { "id": "mbc1a", "label": "Built into the workflow" },
+      { "id": "mbc1b", "label": "Manually", "isGap": true },
+      { "id": "mbc1c", "label": "We don't", "isGap": true } ] },
+    { "id": "mbc2", "sectionId": "mbc", "type": "single", "shortLabel": "MBC implementation status", "text": "Measurement-based care is increasingly becoming an accreditation and payer requirement. Where do you stand?", "options": [
+      { "id": "mbc2a", "label": "Fully implemented" },
+      { "id": "mbc2b", "label": "Partially", "isGap": true },
+      { "id": "mbc2c", "label": "Not started", "isGap": true } ] },
+    { "id": "mbc3", "sectionId": "mbc", "type": "single", "shortLabel": "Demonstrating efficacy", "text": "Can you demonstrate program efficacy to funders and payers with objective data?", "options": [
+      { "id": "mbc3a", "label": "Yes, easily" },
+      { "id": "mbc3b", "label": "With manual effort", "isGap": true },
+      { "id": "mbc3c", "label": "Not really", "isGap": true } ] },
+
+    { "id": "ar1", "sectionId": "ar", "type": "single", "shortLabel": "No-show rate", "text": "What does your no-show situation look like?", "options": [
+      { "id": "ar1a", "label": "Low and controlled" },
+      { "id": "ar1b", "label": "Higher than we'd like", "isGap": true },
+      { "id": "ar1c", "label": "A real revenue drain", "isGap": true },
+      { "id": "ar1d", "label": "We don't track it", "isGap": true } ] },
+    { "id": "ar2", "sectionId": "ar", "type": "single", "shortLabel": "Reminder volume", "text": "How many appointment reminders does your organization typically send before each scheduled appointment?", "options": [
+      { "id": "ar2a", "label": "None today", "isGap": true },
+      { "id": "ar2b", "label": "One reminder" },
+      { "id": "ar2c", "label": "Two reminders" },
+      { "id": "ar2d", "label": "Three or more reminders" },
+      { "id": "ar2e", "label": "Not sure", "isGap": true } ] },
+    { "id": "ar3", "sectionId": "ar", "type": "single", "shortLabel": "Reminder effectiveness", "text": "Does one reminder feel like enough, or do patients still forget after it?", "options": [
+      { "id": "ar3a", "label": "Enough" },
+      { "id": "ar3b", "label": "They still forget", "isGap": true },
+      { "id": "ar3c", "label": "We're back on the phone following up manually", "isGap": true } ] },
+    { "id": "ar4", "sectionId": "ar", "type": "single", "shortLabel": "Multiple reminders awareness", "text": "Are you currently using multiple appointment reminders for each scheduled appointment?", "options": [
+      { "id": "ar4a", "label": "Yes, we send multiple reminders" },
+      { "id": "ar4b", "label": "No, we only send one reminder", "isGap": true },
+      { "id": "ar4c", "label": "No, we do not currently send appointment reminders", "isGap": true },
+      { "id": "ar4d", "label": "I'm not sure", "isGap": true } ] },
+
+    { "id": "open", "sectionId": "wrap", "type": "longtext", "role": "info", "required": false, "shortLabel": "EHR wish list",
+      "text": "If you could have anything developed for your EHR, what would you like to see?",
+      "placeholder": "Please don't include any client information." }
+  ],
+  "scoring": {
+    "method": "gaps",
+    "overall": "allQuestions",
+    "tierBasis": "percent",
+    "display": "percent",
+    "tiers": [
+      { "id": "full", "min": 80, "max": 100, "label": "Fully Leveraged", "color": "#00B2A9",
+        "summary": "You're getting strong value from your Qualifacts partnership across these areas.",
+        "body": "You're getting strong value out of your Qualifacts partnership across most of these areas. A few refinements could close the remaining gaps — worth a quick conversation with your account team about the add-ons that would round things out." },
+      { "id": "solid", "min": 60, "max": 79, "label": "Solid, With Gaps", "color": "#E8A317",
+        "summary": "You're using InSync well in places, but there are meaningful gaps worth closing.",
+        "body": "You're using InSync well in places, but there are meaningful gaps that may be costing you time, revenue, or compliance coverage. Several of these are exactly what the add-ons already available in your Qualifacts partnership are built to solve." },
+      { "id": "meaningful", "min": 40, "max": 59, "label": "Meaningful Opportunity", "color": "#C6007E",
+        "summary": "Multiple modules show real gaps that are likely costing you time and revenue.",
+        "body": "Multiple modules show real gaps. Most organizations in this range are leaving measurable time, revenue, or compliance coverage on the table — and much of it is solvable with add-ons already part of your Qualifacts partnership." },
+      { "id": "significant", "min": 0, "max": 39, "label": "Significant Opportunity", "color": "#A0006A",
+        "summary": "Your organization is carrying a lot of manual work and risk your partnership can likely already solve.",
+        "body": "Your organization is carrying a lot of manual work and risk that your Qualifacts partnership can likely already solve. This is worth an urgent conversation with your account team about the InSync add-ons you're not yet using." }
+    ],
+    "sectionTiers": [
+      { "id": "m_opt", "min": 80, "max": 100, "label": "Optimized", "color": "#00B2A9" },
+      { "id": "m_minor", "min": 60, "max": 79, "label": "Minor Gaps", "color": "#E8A317" },
+      { "id": "m_needs", "min": 40, "max": 59, "label": "Needs Attention", "color": "#C6007E" },
+      { "id": "m_sig", "min": 0, "max": 39, "label": "Significant Gap", "color": "#A0006A" }
+    ]
+  },
+  "insights": [],
+  "recommendations": { "enabled": false, "rules": [] },
+  "leadCapture": {
+    "position": "beforeResults",
+    "heading": "Your results are ready",
+    "body": "Tell us who you are and we'll show your opportunity report.",
+    "fields": [
+      { "key": "first_name", "label": "First name", "type": "text", "required": true },
+      { "key": "last_name", "label": "Last name", "type": "text", "required": true },
+      { "key": "organization", "label": "Organization", "type": "text", "required": true },
+      { "key": "email", "label": "Work email", "type": "email", "required": true }
+    ],
+    "submitLabel": "See My Results"
+  },
+  "results": {
+    "eyebrow": "Your Partnership Health",
+    "showScore": true,
+    "showSectionBreakdown": true,
+    "sectionBreakdownHeading": "Module by module",
+    "showGapList": true,
+    "showInsights": false,
+    "showRecommendations": false,
+    "allowPdf": true,
+    "allowRetake": true
+  },
+  "products": [
+    { "id": "p_iq_doc", "name": "iQ Clinical Documentation", "productLine": "InSync", "benefits": [], "priority": 1 },
+    { "id": "p_grants", "name": "Grants Module", "productLine": "InSync", "benefits": [], "priority": 2 },
+    { "id": "p_rcms", "name": "RCMS", "productLine": "InSync", "benefits": [], "priority": 3 },
+    { "id": "p_greenspace", "name": "Greenspace", "productLine": "InSync", "benefits": [], "priority": 4 },
+    { "id": "p_reminders", "name": "Appointment Reminders", "productLine": "InSync", "benefits": [], "priority": 5 }
+  ]
+}

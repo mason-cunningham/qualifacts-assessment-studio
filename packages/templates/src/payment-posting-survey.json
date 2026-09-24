@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "meta": {
+    "title": "Patient Payment Posting Survey",
+    "description": "Quick feedback on how organizations handle patient payment posting (including self-pay).",
+    "productLine": "RCMS"
+  },
+  "theme": { "accent": "teal" },
+  "intro": {
+    "eyebrow": "RCMS+ · Patient Payment Posting",
+    "headline": "Quick Question About Patient Payments",
+    "subheadline": "6 quick questions, about 2 minutes",
+    "body": "Self-pay and patient payment posting can quietly eat into staff time and slow down your revenue cycle. We're gathering quick feedback on how organizations are handling it today, and whether having your RCMS partner take it off your plate would be helpful.",
+    "bullets": [],
+    "startLabel": "Start",
+    "estimatedMinutes": 2
+  },
+  "sections": [
+    { "id": "org", "name": "About Your Organization" },
+    { "id": "you", "name": "About You" },
+    { "id": "posting", "name": "Patient Payment Posting (Including Self-Pay)" }
+  ],
+  "questions": [
+    { "id": "org_segment_type", "sectionId": "org", "type": "single", "role": "segment", "shortLabel": "Org type", "text": "Which best describes your organization?", "options": [
+      { "id": "ost_fp", "label": "For-Profit Mental Health" },
+      { "id": "ost_np", "label": "Non-Profit Mental Health" },
+      { "id": "ost_ccbhc", "label": "Certified Community Behavioral Health Clinic (CCBHC)" },
+      { "id": "ost_idd", "label": "Intellectual & Developmental Disabilities (IDD)" },
+      { "id": "ost_sud", "label": "Substance Use Disorder (SUD)" },
+      { "id": "ost_hss", "label": "Human/Social Services" },
+      { "id": "ost_other", "label": "Other", "allowOtherText": true } ] },
+    { "id": "org_segment_setting", "sectionId": "org", "type": "single", "role": "segment", "shortLabel": "Care setting", "text": "Which best describes your organization's setting?", "options": [
+      { "id": "oss_out", "label": "Outpatient services" },
+      { "id": "oss_res", "label": "Residential / Inpatient services" },
+      { "id": "oss_crisis", "label": "Crisis services" },
+      { "id": "oss_school", "label": "School-based services" },
+      { "id": "oss_tele", "label": "Telehealth-focused" },
+      { "id": "oss_mix", "label": "A mix of the above" } ] },
+    { "id": "role", "sectionId": "you", "type": "single", "role": "segment", "shortLabel": "Role", "text": "Which best describes your role?", "options": [
+      { "id": "role_exec", "label": "Executive / Leadership (CEO, COO, ED)" },
+      { "id": "role_fin", "label": "Finance / Billing Director" },
+      { "id": "role_rcm", "label": "Revenue Cycle / RCM Manager" },
+      { "id": "role_ops", "label": "Operations Manager" },
+      { "id": "role_clin", "label": "Clinical Leadership" },
+      { "id": "role_other", "label": "Other", "allowOtherText": true } ] },
+    { "id": "satisfaction", "sectionId": "posting", "type": "rating", "role": "info", "shortLabel": "Posting satisfaction",
+      "text": "How satisfied are you with your current patient payment posting accuracy and timeliness?",
+      "scale": { "min": 1, "max": 5, "minLabel": "Very Dissatisfied", "maxLabel": "Very Satisfied" } },
+    { "id": "biggest_challenge", "sectionId": "posting", "type": "single", "role": "info", "shortLabel": "Biggest challenge",
+      "text": "What is your largest challenge with patient payment posting today?", "options": [
+      { "id": "bc_volume", "label": "Volume and staffing" },
+      { "id": "bc_recon", "label": "Reconciliation with patient balances" },
+      { "id": "bc_plans", "label": "Managing payment plans and partial payments" },
+      { "id": "bc_baddebt", "label": "Identifying and writing off bad debt appropriately" } ] },
+    { "id": "posting_interest", "sectionId": "posting", "type": "rating", "role": "info", "shortLabel": "Outsourcing interest",
+      "text": "How interested would you be in having your RCMS partner manage patient payment posting, including self-pay?",
+      "scale": { "min": 1, "max": 5, "minLabel": "Not Interested", "maxLabel": "Very Interested" } }
+  ],
+  "scoring": { "method": "none", "overall": "allQuestions", "tierBasis": "percent", "display": "percent", "tiers": [], "sectionTiers": [] },
+  "insights": [],
+  "recommendations": { "enabled": false, "rules": [] },
+  "leadCapture": {
+    "position": "beforeQuestions",
+    "heading": "Work email (optional)",
+    "body": "If you'd like more information, leave your email and someone from our team may follow up.",
+    "fields": [
+      { "key": "email", "label": "Work email", "type": "email", "required": false, "placeholder": "you@organization.org" }
+    ],
+    "submitLabel": "Start"
+  },
+  "results": {
+    "thankYouOnly": true,
+    "thankYouHeadline": "Thanks for sharing your feedback",
+    "thankYouBody": "We appreciate you taking a minute to help us understand how organizations are handling patient payment posting.",
+    "showScore": false,
+    "showSectionBreakdown": false,
+    "showInsights": false,
+    "showRecommendations": false,
+    "allowPdf": false,
+    "allowRetake": false
+  },
+  "products": []
+}
