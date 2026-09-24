@@ -9,11 +9,13 @@
     "preview": "vite preview --port 5173"
   },
   "dependencies": {
+    "@qq/ai": "0.1.0",
     "@qq/engine": "0.1.0",
     "@qq/schema": "0.1.0",
     "@qq/templates": "0.1.0",
     "@qq/ui": "0.1.0",
     "@supabase/supabase-js": "^2.46.1",
+    "mammoth": "^1.12.3",
     "qrcode": "^1.5.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",

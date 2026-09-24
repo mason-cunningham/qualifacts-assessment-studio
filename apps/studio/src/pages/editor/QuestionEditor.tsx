@@ -2,6 +2,7 @@ import { createOption, isChoiceType, newId, type AssessmentDefinition, type Cond
 import { orderedQuestions } from '@qq/engine';
 import { Check, Field, ImageField, NumberInput, TextArea, TextInput } from '../../components/ui';
 import { move, QUESTION_TYPE_LABELS, ROLE_LABELS } from './helpers';
+import { QuestionAiTools } from '../../components/AiHelpers';
 
 interface Props {
   def: AssessmentDefinition;
@@ -45,6 +46,7 @@ export function QuestionEditor({ def, q, onChange, readOnly }: Props) {
 
   return (
     <fieldset disabled={readOnly} style={{ border: 0, padding: 0, margin: 0 }}>
+      {!readOnly && <QuestionAiTools def={def} q={q} onChange={onChange} />}
       <Field label="Question">
         <TextArea rows={2} value={q.text} onChange={(v) => onChange((d) => { d.text = v; })} placeholder="Ask one clear thing…" />
       </Field>

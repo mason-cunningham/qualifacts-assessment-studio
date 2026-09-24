@@ -3,6 +3,7 @@ import { isChoiceType, newId, type InsightWhen, type Tier } from '@qq/schema';
 import { computeResults, orderedQuestions } from '@qq/engine';
 import { ColorPicker, Field, NumberInput, TextArea, TextInput } from '../../components/ui';
 import { move, sampleAnswers, type EditorProps } from './helpers';
+import { TierCopyButton } from '../../components/AiHelpers';
 
 export function ScoringTab({ def, update, readOnly }: EditorProps) {
   const s = def.scoring;
@@ -121,6 +122,12 @@ export function ScoringTab({ def, update, readOnly }: EditorProps) {
 
       {s.method !== 'none' && (
         <>
+          {!readOnly && (
+            <div className="row-between" style={{ marginTop: 16 }}>
+              <span className="small muted">Let AI draft the summary and guidance copy for each tier from your sections and solutions.</span>
+              <TierCopyButton def={def} update={update} />
+            </div>
+          )}
           <TierEditor
             title="Overall score tiers"
             sub={`A score lands in the tier with the highest minimum it meets. Based on ${s.tierBasis === 'points' ? 'raw points' : 'percent'}.`}

@@ -6,6 +6,7 @@ import { AssessmentExperience, type Screen } from '@qq/ui';
 import { TopBar } from '../../components/Layout';
 import { ErrorBox, Loading, Modal, StatusPill, useToast } from '../../components/ui';
 import { ShareKit } from '../../components/ShareKit';
+import { ReviewButton } from '../../components/AiHelpers';
 import { supabase, T, errorMessage } from '../../lib/supabase';
 import { useAuth } from '../../lib/auth';
 import { readDefinition } from '../../lib/assessments';
@@ -195,6 +196,7 @@ export function EditorPage() {
         </span>
         {saveState === 'conflict' && <button className="btn btn-secondary btn-sm" onClick={() => window.location.reload()}>Reload</button>}
         {row.status === 'published' && <button className="btn btn-secondary btn-sm" onClick={async () => (await copyText(link)) && toast.ok('Link copied')}>Copy link</button>}
+        {canEdit && <ReviewButton def={def} onJumpToQuestion={(qid) => { setTab('content'); setOpenQuestion(qid); }} />}
         <Link className="btn btn-secondary btn-sm" to={`/assessments/${row.id}/responses`}>Responses</Link>
         {canEdit && row.status === 'published' && <button className="btn btn-ghost btn-sm" onClick={() => setStatus('paused')}>Pause</button>}
         {canEdit && row.status === 'paused' && row.published_version_id && <button className="btn btn-ghost btn-sm" onClick={() => setStatus('published')}>Resume</button>}

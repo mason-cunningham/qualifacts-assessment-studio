@@ -153,6 +153,45 @@ export interface NotificationRow {
   created_at: string;
 }
 
+export type KnowledgeKind = 'product_info' | 'best_practices' | 'messaging' | 'reference';
+
+export interface KnowledgeRow {
+  id: string;
+  title: string;
+  kind: KnowledgeKind;
+  topic: string | null;
+  product_line: string | null;
+  content: string;
+  source_filename: string | null;
+  source_path: string | null;
+  char_count: number;
+  tags: string[];
+  is_active: boolean;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export const KNOWLEDGE_KIND_LABELS: Record<KnowledgeKind, string> = {
+  product_info: 'Product info',
+  best_practices: 'Best practices',
+  messaging: 'Messaging',
+  reference: 'Reference',
+};
+
+export interface AiRequestRow {
+  id: string;
+  user_id: string | null;
+  mode: string;
+  model: string | null;
+  input_tokens: number | null;
+  output_tokens: number | null;
+  status: 'ok' | 'error';
+  error: string | null;
+  duration_ms: number | null;
+  created_at: string;
+}
+
 export const FOLLOW_UP_LABELS: Record<FollowUpStatus, string> = {
   new: 'New',
   contacted: 'Contacted',

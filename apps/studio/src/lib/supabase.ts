@@ -19,6 +19,8 @@ export const T = {
   config: 'q-quiz-config',
   outbox: 'q-quiz-outbox',
   stats: 'q-quiz-assessment-stats',
+  knowledge: 'q-quiz-knowledge',
+  aiRequests: 'q-quiz-ai-requests',
   answersView: 'q-quiz-response-answers',
 } as const;
 

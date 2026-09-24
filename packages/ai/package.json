@@ -1,0 +1,14 @@
+{
+  "name": "@qq/ai",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.128.0",
+    "@qq/engine": "0.1.0",
+    "@qq/schema": "0.1.0",
+    "zod": "^3.25.76"
+  }
+}

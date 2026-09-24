@@ -4,7 +4,56 @@ import { Loading, Modal, useToast } from '../components/ui';
 import { supabase, T, errorMessage } from '../lib/supabase';
 import { displayName, useAuth } from '../lib/auth';
 import { fmtDate } from '../lib/format';
-import type { Profile, Role } from '../lib/types';
+import type { AiRequestRow, Profile, Role } from '../lib/types';
+
+// Claude Opus 5 list pricing (USD per million tokens). Cache reads cost less, so this is an upper bound.
+const PRICE_IN = 5;
+const PRICE_OUT = 25;
+
+function AiUsageCard({ people }: { people: Profile[] }) {
+  const [rows, setRows] = useState<AiRequestRow[] | null>(null);
+  useEffect(() => {
+    const since = new Date(Date.now() - 30 * 86400 * 1000).toISOString();
+    supabase.from(T.aiRequests).select('id,user_id,mode,model,input_tokens,output_tokens,status,error,duration_ms,created_at')
+      .gte('created_at', since).order('created_at', { ascending: false }).limit(2000)
+      .then(({ data }) => setRows((data as AiRequestRow[]) ?? []));
+  }, []);
+  if (!rows) return null;
+  const cost = (r: AiRequestRow) => ((r.input_tokens ?? 0) * PRICE_IN + (r.output_tokens ?? 0) * PRICE_OUT) / 1_000_000;
+  const total = rows.reduce((s, r) => s + cost(r), 0);
+  const byUser = new Map<string, { n: number; cost: number; errors: number }>();
+  for (const r of rows) {
+    const k = r.user_id ?? 'unknown';
+    const cur = byUser.get(k) ?? { n: 0, cost: 0, errors: 0 };
+    cur.n++;
+    cur.cost += cost(r);
+    if (r.status === 'error') cur.errors++;
+    byUser.set(k, cur);
+  }
+  return (
+    <div className="card">
+      <div className="card-title">AI usage (last 30 days)</div>
+      <div className="card-sub">
+        {rows.length} requests · about ${total.toFixed(2)} at Claude Opus 5 list prices (an upper bound; cached context costs less). Set a hard monthly limit in the Anthropic Console.
+      </div>
+      {rows.length > 0 && (
+        <table className="table">
+          <thead><tr><th>Person</th><th>Requests</th><th>Errors</th><th>Est. cost</th></tr></thead>
+          <tbody>
+            {[...byUser.entries()].sort((a, b) => b[1].cost - a[1].cost).map(([uid, v]) => (
+              <tr key={uid}>
+                <td>{displayName(people.find((p) => p.id === uid))}</td>
+                <td>{v.n}</td>
+                <td>{v.errors || '—'}</td>
+                <td>${v.cost.toFixed(2)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
+}
 
 function randomPassword(): string {
   const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
@@ -78,6 +127,7 @@ export function UsersPage() {
                 </table>
               </div>
             )}
+            <AiUsageCard people={rows} />
             <div className="card">
               <div className="card-title">Team ({active.length})</div>
               <div className="card-sub"><b>Admins</b> manage users and can delete. <b>Editors</b> create, edit and publish. <b>Viewers</b> see assessments and responses.</div>

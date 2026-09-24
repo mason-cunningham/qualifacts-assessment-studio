@@ -93,6 +93,34 @@ npm run check:db              # read-only security checks against the live datab
 
 ---
 
+## AI assistant (Claude)
+Available in Studio:
+- **✨ Generate with AI**: brief, then context, then review.
+- **Import a questionnaire**: turns a Word, PDF, or Excel questionnaire into an assessment.
+- **Knowledge library**: reusable product facts and best practices to ground generation.
+- **Inline helpers**: improve wording, suggest choices, write tier copy, and review the whole assessment.
+
+**Where the API key lives:** only in a Supabase Edge Function secret. It is never in the browser, git, `.env*`, or Netlify.
+
+One-time setup:
+1. Run `supabase/004_ai_knowledge.sql` in the SQL editor. It's non-destructive, and fresh installs get it from `schema.sql`.
+2. Supabase → **Edge Functions → Secrets** → add `ANTHROPIC_API_KEY`. Use a key from a dedicated Anthropic workspace with a monthly spend limit.
+3. Supabase → **Edge Functions → Deploy a new function**:
+   - Name it `ai-assist`.
+   - Paste the whole file `supabase/functions/ai-assist/index.ts`.
+   - Deploy with **Verify JWT** on.
+
+How it's protected:
+- Only active editors and admins can call it.
+- Each user is limited per day (`ai_daily_limit_per_user` in `q-quiz-config`, default 25).
+- Every call is logged in `q-quiz-ai-requests`; admins see a usage and cost card on the Users page.
+- `ai_enabled = false` turns AI off for everyone.
+- `ai_effort_generate` (`low` to `max`, default `high`) trades generation quality against speed and cost.
+
+The model is Claude Opus 5 with adaptive thinking. Server-side refusal fallbacks are on (`fallbacks: "default"`), so a rare safety decline is retried automatically.
+
+**Changing the function:** edit `supabase/functions/ai-assist/src/index.ts` or `packages/ai/src/*`. Then run `node scripts/build-edge.mjs` and paste the regenerated `index.ts` into Supabase again.
+
 ## Going live on assess.qualifacts.com later
 1. IT adds one CNAME: `assess.qualifacts.com` → the Netlify site. Set it as the primary domain in Netlify. Studio then lives at `assess.qualifacts.com/studio`.
 2. Update `VITE_PUBLIC_BASE_URL` in `.env.production` and push, **and** run:

@@ -14,6 +14,8 @@ import { ProductsPage } from './pages/Products';
 import { NotificationsPage } from './pages/Notifications';
 import { UsersPage } from './pages/Users';
 import { ProfilePage } from './pages/Profile';
+import { KnowledgePage } from './pages/Knowledge';
+import { GenerateWizardPage } from './pages/ai/GenerateWizard';
 
 function RequireStaff({ children }: { children: ReactNode }) {
   const { loading, session, profile } = useAuth();
@@ -42,6 +44,8 @@ export function App() {
       >
         <Route index element={<DashboardPage />} />
         <Route path="new" element={<NewAssessmentPage />} />
+        <Route path="new/ai" element={<GenerateWizardPage />} />
+        <Route path="knowledge" element={<KnowledgePage />} />
         <Route path="assessments/:id" element={<EditorPage />} />
         <Route path="assessments/:id/responses" element={<ResponsesPage />} />
         <Route path="responses" element={<ResponsesPage />} />

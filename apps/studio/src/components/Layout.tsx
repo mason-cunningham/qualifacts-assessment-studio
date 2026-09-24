@@ -15,12 +15,14 @@ export function Layout() {
         <div className="s-brand" style={{ paddingTop: 0, marginTop: -14 }}><span>Assessment Studio</span></div>
         <nav className="s-nav">
           <NavLink to="/" end>Dashboard</NavLink>
-          <NavLink to="/new">New assessment</NavLink>
+          <NavLink to="/new" end>New assessment</NavLink>
+          <NavLink to="/new/ai">✨ Generate with AI</NavLink>
           <div className="s-nav-label">Data</div>
           <NavLink to="/responses">All responses</NavLink>
           <NavLink to="/notifications">Lead alerts</NavLink>
           <div className="s-nav-label">Library</div>
           <NavLink to="/products">Solutions library</NavLink>
+          <NavLink to="/knowledge">Knowledge library</NavLink>
           {isAdmin && (
             <>
               <div className="s-nav-label">Admin</div>

@@ -23,7 +23,7 @@ const ok = (name, pass, detail = '') => {
 const TABLES = [
   'q-quiz-profiles', 'q-quiz-products', 'q-quiz-assessments', 'q-quiz-versions', 'q-quiz-responses',
   'q-quiz-events', 'q-quiz-config', 'q-quiz-notifications', 'q-quiz-outbox', 'q-quiz-ai-requests',
-  'q-quiz-response-answers', 'q-quiz-assessment-stats',
+  'q-quiz-response-answers', 'q-quiz-assessment-stats', 'q-quiz-knowledge',
 ];
 for (const t of TABLES) {
   const { data, error } = await sb.from(t).select('*').limit(1);

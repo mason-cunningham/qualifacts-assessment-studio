@@ -23,7 +23,10 @@ export async function isSlugAvailable(slug: string, exceptId?: string): Promise<
   return !data || data.length === 0;
 }
 
-export async function createAssessment(def: AssessmentDefinition, opts: { slug?: string; internalName?: string } = {}): Promise<AssessmentRow> {
+export async function createAssessment(
+  def: AssessmentDefinition,
+  opts: { slug?: string; internalName?: string; extraSettings?: Record<string, unknown> } = {},
+): Promise<AssessmentRow> {
   const slug = opts.slug ? slugify(opts.slug) : await uniqueSlug(def.meta.title);
   if (RESERVED_SLUGS.includes(slug)) throw new Error(`"${slug}" is reserved by the site. Choose another link.`);
   const { data, error } = await supabase
@@ -36,7 +39,11 @@ export async function createAssessment(def: AssessmentDefinition, opts: { slug?:
       product_line: def.meta.productLine ?? null,
       status: 'draft',
       draft_definition: def,
-      settings: { alerts: { enabled: true, extra_recipients: [] }, crm: { enabled: false, object: 'Lead', lead_source: 'Assessment' } },
+      settings: {
+        alerts: { enabled: true, extra_recipients: [] },
+        crm: { enabled: false, object: 'Lead', lead_source: 'Assessment' },
+        ...(opts.extraSettings ?? {}),
+      },
     })
     .select('*')
     .single();

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { createBlankDefinition, slugify, type AssessmentDefinition } from '@qq/schema';
 import { BUILT_IN_TEMPLATES } from '@qq/templates';
 import { TopBar } from '../components/Layout';
@@ -115,11 +115,16 @@ export function NewAssessmentPage() {
               <span className="small muted">{c.description}</span>
             </button>
           ))}
-          <div className="a-card" style={{ opacity: 0.6 }}>
-            <span className="pill pill-neutral" style={{ alignSelf: 'flex-start' }}>Coming in phase 2</span>
-            <h3>Generate with AI · Upload a document</h3>
-            <span className="small muted">Describe your assessment or upload a draft questionnaire (Word, PDF, Excel), and Claude builds the first version for you.</span>
-          </div>
+          <Link to="/new/ai" className="a-card" style={{ textDecoration: 'none', borderColor: 'var(--magenta)' }}>
+            <span className="pill pill-test" style={{ alignSelf: 'flex-start' }}>✨ AI</span>
+            <h3 style={{ color: 'var(--navy)' }}>Generate with AI</h3>
+            <span className="small muted">Describe the goal, attach knowledge (product facts, best practices) and the solutions to feature. Claude drafts the whole assessment.</span>
+          </Link>
+          <Link to="/new/ai?mode=import" className="a-card" style={{ textDecoration: 'none', borderColor: 'var(--magenta)' }}>
+            <span className="pill pill-test" style={{ alignSelf: 'flex-start' }}>✨ AI</span>
+            <h3 style={{ color: 'var(--navy)' }}>Import a questionnaire</h3>
+            <span className="small muted">Upload an existing Word, PDF, or Excel questionnaire. Claude keeps your questions and adds scoring, tiers, and results copy.</span>
+          </Link>
         </div>
 
         {choice && (
