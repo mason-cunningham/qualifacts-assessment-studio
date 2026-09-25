@@ -240,6 +240,9 @@
 .qq-prose p:last-child { margin-bottom: 0; }
 .qq-prose ul { margin: 0 0 12px; padding-left: 20px; }
 .qq-prose a { color: var(--qq-accent-dk); }
+.qq-prose h3, .qq-lede h3 { font-size: 18px; font-weight: 800; color: var(--navy); line-height: 1.3; margin: 20px 0 8px; }
+.qq-prose h4, .qq-lede h4 { font-size: 16px; font-weight: 700; color: var(--navy); line-height: 1.35; margin: 18px 0 6px; }
+.qq-prose h3:first-child, .qq-prose h4:first-child, .qq-lede h3:first-child, .qq-lede h4:first-child { margin-top: 0; }
 
 .qq-sections { display: flex; flex-direction: column; gap: 14px; }
 .qq-section-card { border: 1px solid var(--border); border-radius: var(--radius-card); padding: 18px 20px; background: var(--white); break-inside: avoid; }

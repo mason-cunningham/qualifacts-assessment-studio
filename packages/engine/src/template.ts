@@ -46,8 +46,15 @@ export function buildMergeContext(
   };
 }
 
-/** Replace {{tags}} in a string. Unknown tags are left as-is so typos are visible in preview. */
+/**
+ * Replace {{tags}} in a string. Unknown tags are left as-is so typos are visible in preview.
+ * "{{score}}%" doesn't double the sign: when a value already ends in "%", a "%" right after the tag is dropped.
+ */
 export function renderTemplate(text: string | undefined, ctx: Record<string, string>): string {
   if (!text) return '';
-  return text.replace(/\{\{\s*(\w+)\s*\}\}/g, (m, key: string) => (key in ctx ? ctx[key] : m));
+  return text.replace(/\{\{\s*(\w+)\s*\}\}(%?)/g, (m, key: string, pct: string) => {
+    if (!(key in ctx)) return m;
+    const v = ctx[key];
+    return pct && v.endsWith('%') ? v : v + pct;
+  });
 }

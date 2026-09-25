@@ -196,6 +196,11 @@ export function EditorPage() {
 
   const hasUnpublishedChanges = !!row.published_version_id && liveJson !== null && liveJson !== comparable(def);
   const link = publicUrl(publicBaseUrl, row.slug);
+  const saveStateLabel = (
+    <span className={`save-state ${saveState === 'error' || saveState === 'conflict' ? 'err' : ''}`}>
+      {!canEdit ? 'View only' : { saved: 'All changes saved', dirty: 'Unsaved changes…', saving: 'Saving…', error: 'Save failed. Retrying on next change', conflict: 'Edited elsewhere. Reload to continue' }[saveState]}
+    </span>
+  );
 
   const setStatus = async (status: AssessmentRow['status']) => {
     if (await saveRow({ status })) toast.ok(status === 'paused' ? 'Paused: the link now shows your closed message' : 'Live again');
@@ -203,22 +208,34 @@ export function EditorPage() {
 
   return (
     <>
-      <TopBar title={<span className="row" style={{ gap: 10 }}><Link to="/" className="muted" style={{ textDecoration: 'none', fontWeight: 600 }}>Dashboard /</Link> {def.meta.title || 'Untitled'} <StatusPill status={row.status} /></span>}>
-        <span className={`save-state ${saveState === 'error' || saveState === 'conflict' ? 'err' : ''}`}>
-          {!canEdit ? 'View only' : { saved: 'All changes saved', dirty: 'Unsaved changes…', saving: 'Saving…', error: 'Save failed. Retrying on next change', conflict: 'Edited elsewhere. Reload to continue' }[saveState]}
-        </span>
-        {saveState === 'conflict' && <button className="btn btn-secondary btn-sm" onClick={() => window.location.reload()}>Reload</button>}
+      <TopBar
+        title={
+          <span className="row" style={{ gap: 10, minWidth: 0 }}>
+            <Link to="/" className="muted" style={{ textDecoration: 'none', fontWeight: 600, flexShrink: 0 }}>Dashboard /</Link>
+            <span className="s-ellipsis">{def.meta.title || 'Untitled'}</span>
+            <StatusPill status={row.status} />
+          </span>
+        }
+        primary={
+          <>
+            {/* Anything other than "saved" matters, so it stays on the top line */}
+            {canEdit && saveState !== 'saved' && saveStateLabel}
+            {saveState === 'conflict' && <button className="btn btn-secondary btn-sm" onClick={() => window.location.reload()}>Reload</button>}
+            {canEdit && (
+              <button className="btn btn-magenta" onClick={() => setPublishing(true)} disabled={saveState === 'conflict'}>
+                {row.status === 'published' ? (hasUnpublishedChanges ? 'Publish changes' : 'Republish') : 'Publish'}
+              </button>
+            )}
+          </>
+        }
+      >
+        {(!canEdit || saveState === 'saved') && saveStateLabel}
         {row.status === 'published' && <button className="btn btn-secondary btn-sm" onClick={async () => (await copyText(link)) && toast.ok('Link copied')}>Copy link</button>}
         {canManageSharing(row, profile) && <button className="btn btn-secondary btn-sm" onClick={() => setSharing(true)}><IconShare />Share</button>}
         {canEdit && <ReviewButton def={def} onJumpToQuestion={(qid) => { setTab('content'); setOpenQuestion(qid); }} />}
         <Link className="btn btn-secondary btn-sm" to={`/assessments/${row.id}/responses`}>Responses</Link>
         {canEdit && row.status === 'published' && <button className="btn btn-ghost btn-sm" onClick={() => setStatus('paused')}>Pause</button>}
         {canEdit && row.status === 'paused' && row.published_version_id && <button className="btn btn-ghost btn-sm" onClick={() => setStatus('published')}>Resume</button>}
-        {canEdit && (
-          <button className="btn btn-magenta" onClick={() => setPublishing(true)} disabled={saveState === 'conflict'}>
-            {row.status === 'published' ? (hasUnpublishedChanges ? 'Publish changes' : 'Republish') : 'Publish'}
-          </button>
-        )}
       </TopBar>
 
       <div className={`ed ${showPreview ? '' : 'no-preview'}`}>

@@ -32,7 +32,7 @@ export function ResultsTab({ def, update, readOnly }: EditorProps) {
             <Field label="Headline override (optional)" hint="Leave blank to use each tier's summary.">
               <TextArea rows={2} value={r.headline} onChange={(v) => set((x) => { x.headline = v || undefined; })} />
             </Field>
-            <Field label="Extra content (optional)" hint="Shown below the guidance, e.g. what happens next.">
+            <Field label="Extra content (optional)" hint="Shown below the guidance, e.g. what happens next. Supports ### Headings, - bullets, **bold** and [links](https://…).">
               <TextArea rows={3} value={r.body} onChange={(v) => set((x) => { x.body = v || undefined; })} />
             </Field>
           </div>

@@ -46,9 +46,20 @@ button { font-family: inherit; }
 .s-side-foot button { flex: none; background: none; border: none; color: var(--text-muted); width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
 .s-side-foot button:hover { background: var(--s-subtle); color: var(--magenta-dk); }
 .s-main { overflow-y: auto; display: flex; flex-direction: column; min-width: 0; }
-.s-topbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 16px 40px; background: rgba(247, 244, 240, 0.85); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); position: sticky; top: 0; z-index: 30; min-height: var(--s-topbar-h); }
-.s-topbar h1 { font-size: 22px; font-weight: 800; letter-spacing: -0.01em; }
-.s-topbar .s-spacer { flex: 1; }
+.s-topbar { display: flex; align-items: center; gap: 10px; flex-wrap: nowrap; padding: 16px 40px; background: rgba(247, 244, 240, 0.85); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); position: sticky; top: 0; z-index: 30; min-height: var(--s-topbar-h); }
+.s-topbar h1 { font-size: 22px; font-weight: 800; letter-spacing: -0.01em; white-space: nowrap; flex-shrink: 0; }
+.s-topbar > * { flex-shrink: 0; }
+.s-topbar .s-spacer { flex: 1 1 0; min-width: 0; }
+/* Collapsed: the title may shrink (ellipsis) so Publish + bell always fit */
+.s-topbar.collapsed h1 { flex-shrink: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.s-ellipsis { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.s-actions-wrap { position: relative; }
+.s-actions { display: flex; align-items: center; gap: 10px; flex-wrap: nowrap; }
+.s-actions-menu { position: absolute; right: 0; top: calc(100% + 10px); z-index: 50; flex-direction: column; align-items: stretch; gap: 2px; min-width: 230px; padding: 6px; background: var(--s-surface); border-radius: var(--s-r-lg); box-shadow: var(--s-shadow-lg); }
+.s-actions-menu.is-hidden { display: none; }
+.s-actions-menu .btn { width: 100%; justify-content: flex-start; min-height: 38px; background: transparent; border-color: transparent; box-shadow: none; color: var(--navy); }
+.s-actions-menu .btn:hover:not(:disabled) { background: var(--s-subtle); }
+.s-actions-menu .save-state { padding: 6px 12px 8px; }
 .s-page { padding: 8px 40px 64px; max-width: 1320px; width: 100%; }
 .s-page-narrow { max-width: 900px; }
 
@@ -155,7 +166,8 @@ table.table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .a-card-foot { display: flex; gap: 6px; flex-wrap: wrap; margin-top: auto; padding-top: 14px; border-top: 1px solid var(--s-line); }
 
 /* ── Tabs (segmented pills) ── */
-.tabs { display: flex; gap: 4px; align-items: center; background: var(--s-surface); border-radius: var(--s-r-md); box-shadow: var(--s-shadow); padding: 5px; margin: 16px 28px 0; overflow-x: auto; }
+.tabs { display: flex; gap: 4px; align-items: center; background: var(--s-surface); border-radius: var(--s-r-md); box-shadow: var(--s-shadow); padding: 5px; margin: 16px 28px 0; overflow-x: auto; scrollbar-width: none; }
+.tabs::-webkit-scrollbar { display: none; }
 .tab { background: none; border: none; padding: 8px 14px; border-radius: var(--s-r-sm); font-weight: 700; font-size: 13px; color: var(--text-muted); cursor: pointer; white-space: nowrap; transition: background .15s, color .15s; }
 .tab:hover { color: var(--navy); background: var(--s-subtle); }
 .tab:focus-visible { outline: none; box-shadow: var(--s-focus); }

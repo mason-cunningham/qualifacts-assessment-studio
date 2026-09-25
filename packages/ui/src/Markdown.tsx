@@ -1,7 +1,7 @@
 import { Fragment, type ReactNode } from 'react';
 
 // Tiny, safe Markdown subset for editor-authored copy:
-//   paragraphs (blank line), "- " bullet lists, **bold**, *italic* / _italic_, [text](https://…)
+//   paragraphs (blank line), "- " bullet lists, "#"–"######" headings, **bold**, *italic* / _italic_, [text](https://…)
 // Renders React elements only (never innerHTML), and only allows http(s)/mailto links,
 // so respondent-supplied merge values (names, orgs) can't inject markup.
 
@@ -36,35 +36,54 @@ function inline(text: string, keyPrefix: string): ReactNode[] {
   return out;
 }
 
+const HEADING = /^\s{0,3}(#{1,6})\s+(.*?)\s*#*\s*$/;
+
+function renderBlock(lines: string[], key: string): ReactNode {
+  if (lines.every((l) => /^\s*[-*•]\s+/.test(l))) {
+    return (
+      <ul key={key}>
+        {lines.map((l, li) => (
+          <li key={li}>{inline(l.replace(/^\s*[-*•]\s+/, ''), `${key}-${li}`)}</li>
+        ))}
+      </ul>
+    );
+  }
+  return (
+    <p key={key}>
+      {lines.map((l, li) => (
+        <Fragment key={li}>
+          {li > 0 && <br />}
+          {inline(l, `${key}-${li}`)}
+        </Fragment>
+      ))}
+    </p>
+  );
+}
+
 export function Markdown({ text, className }: { text?: string | null; className?: string }) {
   if (!text || !text.trim()) return null;
   const blocks = text.replace(/\r\n/g, '\n').split(/\n{2,}/);
-  return (
-    <div className={className}>
-      {blocks.map((block, bi) => {
-        const lines = block.split('\n');
-        if (lines.every((l) => /^\s*[-*•]\s+/.test(l))) {
-          return (
-            <ul key={bi}>
-              {lines.map((l, li) => (
-                <li key={li}>{inline(l.replace(/^\s*[-*•]\s+/, ''), `${bi}-${li}`)}</li>
-              ))}
-            </ul>
-          );
-        }
-        return (
-          <p key={bi}>
-            {lines.map((l, li) => (
-              <Fragment key={li}>
-                {li > 0 && <br />}
-                {inline(l, `${bi}-${li}`)}
-              </Fragment>
-            ))}
-          </p>
-        );
-      })}
-    </div>
-  );
+  const out: ReactNode[] = [];
+  blocks.forEach((block, bi) => {
+    // Headings end the current run of lines; "# / ##" → h3, deeper → h4 (never outranks the card title)
+    let run: string[] = [];
+    const flush = () => {
+      if (run.length) out.push(renderBlock(run, `${bi}-${out.length}`));
+      run = [];
+    };
+    for (const line of block.split('\n')) {
+      const h = HEADING.exec(line);
+      if (h) {
+        flush();
+        const Tag = h[1].length <= 2 ? 'h3' : 'h4';
+        out.push(<Tag key={`${bi}-${out.length}`}>{inline(h[2], `${bi}-h${out.length}`)}</Tag>);
+      } else if (line.trim() || run.length) {
+        run.push(line);
+      }
+    }
+    flush();
+  });
+  return <div className={className}>{out}</div>;
 }
 
 /** Inline-only variant (no paragraphs) for headings and short labels. */

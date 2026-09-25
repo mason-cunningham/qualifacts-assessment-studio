@@ -9,6 +9,7 @@ import {
   type ReactNode,
   type TextareaHTMLAttributes,
 } from 'react';
+import { createPortal } from 'react-dom';
 import { BRAND_COLORS } from '@qq/schema';
 import { errorMessage, uploadAsset } from '../lib/supabase';
 import { TEAM_OPTIONS, type AssessmentStatus, type Team } from '../lib/types';
@@ -51,7 +52,9 @@ export function Modal({ title, onClose, children, footer, wide }: {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
-  return (
+  // Portal to <body>: modals opened from the top bar's overflow menu stay visible, and the
+  // top bar's backdrop-filter can't become the containing block for this fixed overlay.
+  return createPortal(
     <div className="modal-bg" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className={`modal ${wide ? 'wide' : ''}`} role="dialog" aria-modal="true">
         <div className="modal-head">
@@ -61,7 +64,8 @@ export function Modal({ title, onClose, children, footer, wide }: {
         <div className="modal-body">{children}</div>
         {footer && <div className="modal-foot">{footer}</div>}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

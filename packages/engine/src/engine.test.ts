@@ -45,6 +45,21 @@ function all(def: AssessmentDefinition, idx: number): Answers {
   return a;
 }
 
+describe('renderTemplate', () => {
+  const ctx = { score: '39%', pct: '39', points: '12' };
+  it("doesn't double the percent sign after {{score}}", () => {
+    expect(renderTemplate('At {{score}}%, you are…', ctx)).toBe('At 39%, you are…');
+    expect(renderTemplate('At {{ score }}, you are…', ctx)).toBe('At 39%, you are…');
+  });
+  it('keeps the percent sign when the value has none', () => {
+    expect(renderTemplate('{{pct}}% done', ctx)).toBe('39% done');
+    expect(renderTemplate('{{points}}%', ctx)).toBe('12%');
+  });
+  it('leaves unknown tags visible', () => {
+    expect(renderTemplate('{{nope}}%', ctx)).toBe('{{nope}}%');
+  });
+});
+
 describe('templates are valid', () => {
   for (const t of BUILT_IN_TEMPLATES) {
     it(`${t.key} passes the pre-publish checklist`, () => {
