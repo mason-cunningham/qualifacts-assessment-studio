@@ -3,6 +3,7 @@ import { NavLink, Outlet } from 'react-router-dom';
 import { qualifactsLogo } from '@qq/ui';
 import { displayName, useAuth } from '../lib/auth';
 import { NotificationBell } from './NotificationBell';
+import { TeamGate } from './TeamPrompt';
 import { IconBell, IconBook, IconBox, IconDashboard, IconInbox, IconLogOut, IconPlus, IconSparkle, IconUsers } from './icons';
 
 function initials(name: string): string {
@@ -51,6 +52,7 @@ export function Layout() {
       <div className="s-main">
         <Outlet />
       </div>
+      <TeamGate />
     </div>
   );
 }

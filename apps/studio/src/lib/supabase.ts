@@ -12,6 +12,7 @@ export const T = {
   profiles: 'q-quiz-profiles',
   products: 'q-quiz-products',
   assessments: 'q-quiz-assessments',
+  shares: 'q-quiz-assessment-shares',
   versions: 'q-quiz-versions',
   responses: 'q-quiz-responses',
   events: 'q-quiz-events',

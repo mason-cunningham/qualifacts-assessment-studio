@@ -8,8 +8,9 @@ import { ErrorBox, Field, Loading, useToast } from '../components/ui';
 import { supabase, T } from '../lib/supabase';
 import { displayName, useAuth } from '../lib/auth';
 import { readDefinition } from '../lib/assessments';
+import { accessFor, canEditRow } from '../lib/access';
 import { fmtDate, fullName } from '../lib/format';
-import { FOLLOW_UP_LABELS, type AssessmentRow, type FollowUpStatus, type Profile, type ResponseRow } from '../lib/types';
+import { FOLLOW_UP_LABELS, type AssessmentRow, type FollowUpStatus, type Profile, type ResponseRow, type ShareRow } from '../lib/types';
 
 /** Rebuild the engine's Answers from stored answer records so results render exactly as the respondent saw them. */
 function answersFromRecords(def: AssessmentDefinition, r: ResponseRow): Answers {
@@ -31,9 +32,12 @@ export function ResponseDetailPage() {
   const { responseId } = useParams<{ responseId: string }>();
   const nav = useNavigate();
   const toast = useToast();
-  const { canEdit, isAdmin } = useAuth();
+  const { profile, isAdmin } = useAuth();
   const [r, setR] = useState<ResponseRow | null>(null);
   const [assessment, setAssessment] = useState<AssessmentRow | null>(null);
+  const [myShares, setMyShares] = useState<ShareRow[]>([]);
+  // Follow-up edits need edit access to the assessment; view access can read and export
+  const canEdit = assessment ? canEditRow(accessFor(assessment, profile, myShares), profile) : false;
   const [def, setDef] = useState<AssessmentDefinition | null>(null);
   const [versionLabel, setVersionLabel] = useState('');
   const [people, setPeople] = useState<Profile[]>([]);
@@ -42,17 +46,20 @@ export function ResponseDetailPage() {
 
   useEffect(() => {
     (async () => {
-      const { data, error } = await supabase.from(T.responses).select('*').eq('id', responseId!).single();
+      const { data, error } = await supabase.from(T.responses).select('*').eq('id', responseId!).maybeSingle();
       if (error) return setError(error);
+      if (!data) return setError(new Error("This response doesn't exist or you don't have access to its assessment."));
       const resp = data as ResponseRow;
       setR(resp);
       setNotes(resp.internal_notes ?? '');
-      const [{ data: a }, { data: v }, { data: p }] = await Promise.all([
+      const [{ data: a }, { data: v }, { data: p }, { data: sh }] = await Promise.all([
         supabase.from(T.assessments).select('*').eq('id', resp.assessment_id).single(),
         resp.version_id ? supabase.from(T.versions).select('definition,version_number').eq('id', resp.version_id).maybeSingle() : Promise.resolve({ data: null }),
         supabase.from(T.profiles).select('id,email,full_name,is_active').eq('is_active', true),
+        supabase.from(T.shares).select('*').eq('assessment_id', resp.assessment_id),
       ]);
       setAssessment(a as AssessmentRow);
+      setMyShares((sh as ShareRow[]) ?? []);
       setPeople((p as Profile[]) ?? []);
       const vd = v as { definition: unknown; version_number: number } | null;
       if (vd) {

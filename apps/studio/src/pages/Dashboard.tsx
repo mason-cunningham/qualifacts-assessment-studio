@@ -3,13 +3,20 @@ import { Link, useNavigate } from 'react-router-dom';
 import { TopBar } from '../components/Layout';
 import { ErrorBox, Loading, Modal, StatusPill, useToast } from '../components/ui';
 import { ShareKit } from '../components/ShareKit';
+import { ShareAccessDialog } from '../components/ShareAccess';
+import { IconShare } from '../components/icons';
 import { supabase, T } from '../lib/supabase';
 import { displayName, useAuth } from '../lib/auth';
 import { duplicateAssessment } from '../lib/assessments';
+import { accessFor, canEditRow, canManageSharing } from '../lib/access';
 import { copyText, fmtRelative, publicUrl } from '../lib/format';
-import type { AssessmentRow, AssessmentStatus, Profile, StatsRow } from '../lib/types';
+import { teamLabel, type AssessmentRow, type AssessmentStatus, type Profile, type ShareRow, type StatsRow } from '../lib/types';
 
-type Filter = 'active' | 'mine' | 'published' | 'draft' | 'archived' | 'all';
+type Filter = 'active' | 'mine' | 'team' | 'shared' | 'published' | 'draft' | 'archived' | 'all';
+
+const FILTER_LABELS: Record<Filter, string> = {
+  active: 'Active', mine: 'Mine', team: 'Team', shared: 'Shared with me', published: 'Live', draft: 'Drafts', archived: 'Archived', all: 'All',
+};
 
 export function DashboardPage() {
   const { profile, canEdit, publicBaseUrl } = useAuth();
@@ -18,26 +25,32 @@ export function DashboardPage() {
   const [rows, setRows] = useState<AssessmentRow[] | null>(null);
   const [stats, setStats] = useState<Map<string, StatsRow>>(new Map());
   const [people, setPeople] = useState<Map<string, Profile>>(new Map());
+  const [myShares, setMyShares] = useState<ShareRow[]>([]);
   const [error, setError] = useState<unknown>(null);
   const [filter, setFilter] = useState<Filter>('active');
   const [q, setQ] = useState('');
   const [share, setShare] = useState<AssessmentRow | null>(null);
+  const [access, setAccess] = useState<AssessmentRow | null>(null);
 
   const load = async () => {
-    const [a, s, p] = await Promise.all([
-      supabase.from(T.assessments).select('id,slug,title,internal_name,description,product_line,status,published_version_id,settings,is_template,closes_at,published_at,owner_id,created_by,updated_by,created_at,updated_at,draft_definition').order('updated_at', { ascending: false }),
+    const [a, s, p, sh] = await Promise.all([
+      supabase.from(T.assessments).select('id,slug,title,internal_name,description,product_line,status,published_version_id,settings,is_template,closes_at,published_at,owner_id,team,created_by,updated_by,created_at,updated_at,draft_definition').order('updated_at', { ascending: false }),
       supabase.from(T.stats).select('*'),
       supabase.from(T.profiles).select('id,email,full_name'),
+      profile ? supabase.from(T.shares).select('*').eq('user_id', profile.id) : Promise.resolve({ data: [] }),
     ]);
     if (a.error) return setError(a.error);
     setRows(a.data as AssessmentRow[]);
     setStats(new Map(((s.data as StatsRow[]) ?? []).map((x) => [x.assessment_id, x])));
     setPeople(new Map(((p.data as Profile[]) ?? []).map((x) => [x.id, x])));
+    setMyShares((sh.data as ShareRow[]) ?? []);
   };
+  const sharedWithMe = useMemo(() => new Map(myShares.map((s) => [s.assessment_id, s])), [myShares]);
 
   useEffect(() => {
     load();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile?.id, profile?.team]);
 
   const filtered = useMemo(() => {
     if (!rows) return [];
@@ -45,13 +58,15 @@ export function DashboardPage() {
     return rows.filter((r) => {
       if (filter === 'active' && r.status === 'archived') return false;
       if (filter === 'mine' && r.owner_id !== profile?.id) return false;
+      if (filter === 'team' && (!profile?.team || r.team !== profile.team)) return false;
+      if (filter === 'shared' && !sharedWithMe.has(r.id)) return false;
       if (filter === 'published' && r.status !== 'published') return false;
       if (filter === 'draft' && r.status !== 'draft') return false;
       if (filter === 'archived' && r.status !== 'archived') return false;
       if (term && !`${r.title} ${r.slug} ${r.internal_name ?? ''} ${r.product_line ?? ''}`.toLowerCase().includes(term)) return false;
       return true;
     });
-  }, [rows, filter, q, profile]);
+  }, [rows, filter, q, profile, sharedWithMe]);
 
   const totals = useMemo(() => {
     const all = [...stats.values()];
@@ -95,9 +110,10 @@ export function DashboardPage() {
 
         <div className="row-between" style={{ marginBottom: 14, flexWrap: 'wrap' }}>
           <div className="btn-row">
-            {(['active', 'mine', 'published', 'draft', 'archived', 'all'] as Filter[]).map((f) => (
-              <button key={f} className={`btn btn-sm ${filter === f ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setFilter(f)}>
-                {{ active: 'Active', mine: 'Mine', published: 'Live', draft: 'Drafts', archived: 'Archived', all: 'All' }[f]}
+            {(['active', 'mine', 'team', 'shared', 'published', 'draft', 'archived', 'all'] as Filter[]).map((f) => (
+              <button key={f} className={`btn btn-sm ${filter === f ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setFilter(f)}
+                title={f === 'team' ? (profile?.team ? `Assessments from the ${teamLabel(profile.team)} team` : 'Pick your team on your Profile') : undefined}>
+                {FILTER_LABELS[f]}
               </button>
             ))}
           </div>
@@ -107,7 +123,11 @@ export function DashboardPage() {
         {error ? <ErrorBox error={error} /> : !rows ? <Loading /> : filtered.length === 0 ? (
           <div className="card empty">
             <h3>{rows.length === 0 ? 'No assessments yet' : 'Nothing matches'}</h3>
-            <p>{rows.length === 0 ? 'Start from one of the Qualifacts templates or a blank assessment.' : 'Try a different filter.'}</p>
+            <p>{rows.length === 0
+              ? 'Start from one of the Qualifacts templates or a blank assessment.'
+              : filter === 'shared' ? 'Nothing has been shared with you yet.'
+              : filter === 'team' ? "Your team hasn't created any assessments yet."
+              : 'Try a different filter.'}</p>
             {canEdit && rows.length === 0 && <Link className="btn btn-primary" to="/new">Create your first assessment</Link>}
           </div>
         ) : (
@@ -116,10 +136,17 @@ export function DashboardPage() {
               const s = stats.get(r.id);
               const owner = r.owner_id ? people.get(r.owner_id) : undefined;
               const link = publicUrl(publicBaseUrl, r.slug);
+              const level = accessFor(r, profile, myShares);
+              const editable = canEditRow(level, profile);
+              const viaShare = r.owner_id !== profile?.id && r.team !== profile?.team ? sharedWithMe.get(r.id) : undefined;
               return (
                 <div className="a-card" key={r.id}>
                   <div className="row-between">
-                    <StatusPill status={r.status} />
+                    <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
+                      <StatusPill status={r.status} />
+                      {teamLabel(r.team) && <span className="pill pill-neutral">{teamLabel(r.team)}</span>}
+                      {viaShare && <span className="pill pill-test">Shared · {viaShare.permission === 'edit' ? 'Can edit' : 'Can view'}</span>}
+                    </div>
                     <span className="small muted">Edited {fmtRelative(r.updated_at)}</span>
                   </div>
                   <div>
@@ -137,17 +164,20 @@ export function DashboardPage() {
                   </div>
                   <div className="small muted">Last response: {fmtRelative(s?.last_response_at)}</div>
                   <div className="a-card-foot">
-                    <Link className="btn btn-secondary btn-sm" to={`/assessments/${r.id}`}>{canEdit ? 'Edit' : 'View'}</Link>
+                    <Link className="btn btn-secondary btn-sm" to={`/assessments/${r.id}`}>{editable ? 'Edit' : 'View'}</Link>
                     <Link className="btn btn-secondary btn-sm" to={`/assessments/${r.id}/responses`}>Responses</Link>
+                    {canManageSharing(r, profile) && (
+                      <button className="btn btn-secondary btn-sm" onClick={() => setAccess(r)}><IconShare />Share</button>
+                    )}
                     {r.status === 'published' && (
                       <>
                         <button className="btn btn-secondary btn-sm" onClick={async () => (await copyText(link)) && toast.ok('Link copied')}>Copy link</button>
-                        <button className="btn btn-secondary btn-sm" onClick={() => setShare(r)}>Share / QR</button>
+                        <button className="btn btn-secondary btn-sm" onClick={() => setShare(r)}>Link / QR</button>
                       </>
                     )}
-                    {canEdit && (
+                    {canEdit && <button className="btn btn-ghost btn-sm" onClick={() => duplicate(r)}>Duplicate</button>}
+                    {editable && (
                       <>
-                        <button className="btn btn-ghost btn-sm" onClick={() => duplicate(r)}>Duplicate</button>
                         {r.status === 'published' && <button className="btn btn-ghost btn-sm" onClick={() => setStatus(r, 'paused')}>Pause</button>}
                         {r.status === 'paused' && r.published_version_id && <button className="btn btn-ghost btn-sm" onClick={() => setStatus(r, 'published')}>Resume</button>}
                         {r.status !== 'archived' && r.status !== 'published' && <button className="btn btn-ghost btn-sm" onClick={() => setStatus(r, 'archived')}>Archive</button>}
@@ -165,6 +195,13 @@ export function DashboardPage() {
         <Modal title={`Share: ${share.title}`} onClose={() => setShare(null)} wide>
           <ShareKit slug={share.slug} live={share.status === 'published'} />
         </Modal>
+      )}
+      {access && (
+        <ShareAccessDialog
+          row={access}
+          onClose={() => { setAccess(null); load(); }}
+          onTeamChanged={(team) => setRows((cur) => cur?.map((x) => (x.id === access.id ? { ...x, team } : x)) ?? cur)}
+        />
       )}
     </>
   );

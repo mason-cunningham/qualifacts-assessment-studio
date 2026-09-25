@@ -44,7 +44,9 @@ export function NotificationsPage() {
                   <tr key={n.id} style={{ background: n.read_at ? undefined : 'rgba(0,178,169,0.05)' }}>
                     <td style={{ width: 10 }}>{!n.read_at && <span className="dot-live" />}</td>
                     <td>
-                      {n.response_id ? <Link to={`/responses/${n.response_id}`} style={{ fontWeight: 700, color: 'var(--navy)' }}>{n.title}</Link> : <b>{n.title}</b>}
+                      {n.response_id || n.assessment_id
+                        ? <Link to={n.response_id ? `/responses/${n.response_id}` : `/assessments/${n.assessment_id}`} style={{ fontWeight: 700, color: 'var(--navy)' }}>{n.title}</Link>
+                        : <b>{n.title}</b>}
                       <div className="small muted">{n.body}</div>
                     </td>
                     <td className="small muted" style={{ whiteSpace: 'nowrap', textAlign: 'right' }}>{fmtDate(n.created_at, true)}</td>

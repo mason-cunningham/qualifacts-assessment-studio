@@ -5,11 +5,17 @@ import type { AssessmentRow } from './types';
 /** Paths used by the site itself, so they can't be assessment links. Keep in sync with supabase/schema.sql. */
 export const RESERVED_SLUGS = ['studio', 'assets', 'api', 'admin', 'favicon', 'index'];
 
+/** Slugs starting with `root` across ALL assessments (RLS hides other teams' rows, so this uses an RPC). */
+async function takenSlugs(root: string): Promise<Set<string>> {
+  const { data, error } = await supabase.rpc('q_quiz_taken_slugs', { p_root: root });
+  if (error) throw error;
+  return new Set(((data as unknown[]) ?? []).map((s) => (typeof s === 'string' ? s : (s as { q_quiz_taken_slugs: string }).q_quiz_taken_slugs)));
+}
+
 export async function uniqueSlug(base: string): Promise<string> {
   let root = slugify(base) || 'assessment';
   if (RESERVED_SLUGS.includes(root)) root = `${root}-assessment`;
-  const { data } = await supabase.from(T.assessments).select('slug').like('slug', `${root}%`);
-  const taken = new Set((data ?? []).map((r: { slug: string }) => r.slug));
+  const taken = await takenSlugs(root);
   if (!taken.has(root)) return root;
   for (let i = 2; i < 500; i++) if (!taken.has(`${root}-${i}`)) return `${root}-${i}`;
   return `${root}-${crypto.randomUUID().slice(0, 6)}`;
@@ -17,10 +23,11 @@ export async function uniqueSlug(base: string): Promise<string> {
 
 export async function isSlugAvailable(slug: string, exceptId?: string): Promise<boolean> {
   if (RESERVED_SLUGS.includes(slug)) return false;
-  let q = supabase.from(T.assessments).select('id').eq('slug', slug);
-  if (exceptId) q = q.neq('id', exceptId);
-  const { data } = await q;
-  return !data || data.length === 0;
+  if (!(await takenSlugs(slug)).has(slug)) return true;
+  if (!exceptId) return false;
+  // Taken: available only if it's this assessment's own slug
+  const { data } = await supabase.from(T.assessments).select('slug').eq('id', exceptId).maybeSingle();
+  return (data as { slug: string } | null)?.slug === slug;
 }
 
 export async function createAssessment(

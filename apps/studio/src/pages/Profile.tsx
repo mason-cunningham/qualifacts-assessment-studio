@@ -1,14 +1,16 @@
 import { useEffect, useState } from 'react';
 import { TopBar } from '../components/Layout';
-import { Field, TextInput, useToast } from '../components/ui';
+import { Field, TeamSelect, TextInput, useToast } from '../components/ui';
 import { useAuth } from '../lib/auth';
 import { supabase, T } from '../lib/supabase';
+import type { Team } from '../lib/types';
 
 export function ProfilePage() {
   const { profile, refreshProfile } = useAuth();
   const toast = useToast();
   const [name, setName] = useState(profile?.full_name ?? '');
   const [title, setTitle] = useState(profile?.title ?? '');
+  const [team, setTeam] = useState<Team | null>(profile?.team ?? null);
   const [pw, setPw] = useState('');
   const [pw2, setPw2] = useState('');
   const [busy, setBusy] = useState(false);
@@ -16,12 +18,14 @@ export function ProfilePage() {
   useEffect(() => {
     setName(profile?.full_name ?? '');
     setTitle(profile?.title ?? '');
+    setTeam(profile?.team ?? null);
   }, [profile]);
 
   const saveProfile = async () => {
     if (!profile) return;
+    if (!team) return toast.error('Select your team.');
     setBusy(true);
-    const { error } = await supabase.from(T.profiles).update({ full_name: name.trim() || null, title: title.trim() || null }).eq('id', profile.id);
+    const { error } = await supabase.from(T.profiles).update({ full_name: name.trim() || null, title: title.trim() || null, team }).eq('id', profile.id);
     setBusy(false);
     if (error) return toast.error(error);
     await refreshProfile();
@@ -50,6 +54,9 @@ export function ProfilePage() {
           <div className="grid grid-2">
             <Field label="Full name"><TextInput value={name} onChange={setName} /></Field>
             <Field label="Title"><TextInput value={title} onChange={setTitle} placeholder="e.g. Product Marketing Manager" /></Field>
+            <Field label="Team" hint="New assessments you create are shared with this team. Changing teams doesn't move assessments you already made.">
+              <TeamSelect value={team} onChange={setTeam} />
+            </Field>
           </div>
           <button className="btn btn-primary" disabled={busy} onClick={saveProfile}>Save</button>
         </div>

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { qualifactsLogo } from '@qq/ui';
 import { useAuth } from '../lib/auth';
+import { TeamPicker } from '../components/TeamPrompt';
 
 export function PendingPage() {
   const { profile, refreshProfile, signOut } = useAuth();
@@ -14,6 +15,12 @@ export function PendingPage() {
           Thanks{profile?.full_name ? `, ${profile.full_name.split(' ')[0]}` : ''}! Your account ({profile?.email}) was created.
           A Studio admin needs to approve it before you can build assessments.
         </p>
+        {!profile?.team && (
+          <div className="field">
+            <label>While you wait, pick your team</label>
+            <TeamPicker />
+          </div>
+        )}
         <div className="btn-row">
           <button className="btn btn-primary" disabled={checking} onClick={async () => { setChecking(true); await refreshProfile(); setChecking(false); }}>
             {checking ? 'Checking…' : 'Check again'}

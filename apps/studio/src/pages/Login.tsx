@@ -3,6 +3,8 @@ import { Navigate } from 'react-router-dom';
 import { qualifactsLogo } from '@qq/ui';
 import { supabase, errorMessage } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
+import { TeamSelect } from '../components/ui';
+import type { Team } from '../lib/types';
 
 const DOMAIN = '@qualifacts.com';
 
@@ -12,6 +14,7 @@ export function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
+  const [team, setTeam] = useState<Team | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -33,10 +36,11 @@ export function LoginPage() {
         if (error) throw error;
       } else {
         if (!fullName.trim()) throw new Error('Enter your name.');
+        if (!team) throw new Error('Select your team.');
         const { data, error } = await supabase.auth.signUp({
           email: addr,
           password,
-          options: { data: { full_name: fullName.trim() }, emailRedirectTo: window.location.origin + import.meta.env.BASE_URL },
+          options: { data: { full_name: fullName.trim(), team }, emailRedirectTo: window.location.origin + import.meta.env.BASE_URL },
         });
         if (error) throw error;
         if (!data.session) {
@@ -64,6 +68,13 @@ export function LoginPage() {
           <div className="field">
             <label htmlFor="name">Full name</label>
             <input id="name" className="input" autoComplete="name" value={fullName} onChange={(e) => setFullName(e.target.value)} />
+          </div>
+        )}
+        {mode === 'signup' && (
+          <div className="field">
+            <label htmlFor="team">Team</label>
+            <TeamSelect id="team" value={team} onChange={setTeam} />
+            <span className="hint">Everyone on your team can see and edit the assessments you create.</span>
           </div>
         )}
         <div className="field">

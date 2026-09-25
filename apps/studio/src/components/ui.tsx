@@ -11,7 +11,7 @@ import {
 } from 'react';
 import { BRAND_COLORS } from '@qq/schema';
 import { errorMessage, uploadAsset } from '../lib/supabase';
-import type { AssessmentStatus } from '../lib/types';
+import { TEAM_OPTIONS, type AssessmentStatus, type Team } from '../lib/types';
 
 // ── Toasts ──────────────────────────────────────────────────────────────────
 interface Toast { id: number; text: string; kind: 'ok' | 'error' }
@@ -108,6 +108,17 @@ export function Check({ checked, onChange, label }: { checked: boolean; onChange
       <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
       {label}
     </label>
+  );
+}
+
+export function TeamSelect({ value, onChange, id, className = 'select', placeholder = 'Select your team…' }: {
+  value: Team | null | undefined; onChange: (v: Team | null) => void; id?: string; className?: string; placeholder?: string;
+}) {
+  return (
+    <select id={id} className={className} value={value ?? ''} onChange={(e) => onChange((e.target.value || null) as Team | null)}>
+      <option value="">{placeholder}</option>
+      {TEAM_OPTIONS.map(([k, label]) => <option key={k} value={k}>{label}</option>)}
+    </select>
   );
 }
 

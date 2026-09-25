@@ -69,17 +69,17 @@ export function NotificationBell() {
       {open && (
         <div className="bell-menu">
           <div className="row-between" style={{ padding: '10px 14px', borderBottom: '1px solid var(--border)' }}>
-            <b style={{ color: 'var(--navy)' }}>New leads</b>
+            <b style={{ color: 'var(--navy)' }}>Notifications</b>
             <div className="row">
               {unread > 0 && <button className="btn btn-ghost btn-sm" onClick={markAllRead}>Mark all read</button>}
               <Link className="btn btn-ghost btn-sm" to="/notifications" onClick={() => setOpen(false)}>View all</Link>
             </div>
           </div>
-          {items.length === 0 && <div className="empty small">No alerts yet. You'll see new leads from your assessments here.</div>}
+          {items.length === 0 && <div className="empty small">No alerts yet. You'll see new leads and assessments shared with you here.</div>}
           {items.map((n) => (
             <Link
               key={n.id}
-              to={n.response_id ? `/responses/${n.response_id}` : '/notifications'}
+              to={n.response_id ? `/responses/${n.response_id}` : n.assessment_id ? `/assessments/${n.assessment_id}` : '/notifications'}
               className={`bell-item ${n.read_at ? '' : 'unread'}`}
               onClick={() => {
                 markRead(n.id);

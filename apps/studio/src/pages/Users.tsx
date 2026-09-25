@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { TopBar } from '../components/Layout';
-import { Loading, Modal, useToast } from '../components/ui';
+import { Loading, Modal, TeamSelect, useToast } from '../components/ui';
 import { supabase, T, errorMessage } from '../lib/supabase';
 import { displayName, useAuth } from '../lib/auth';
 import { fmtDate } from '../lib/format';
-import type { AiRequestRow, Profile, Role } from '../lib/types';
+import { teamLabel, type AiRequestRow, type Profile, type Role } from '../lib/types';
 
 // Claude Opus 5 list pricing (USD per million tokens). Cache reads cost less, so this is an upper bound.
 const PRICE_IN = 5;
@@ -116,6 +116,7 @@ export function UsersPage() {
                     {pending.map((p) => (
                       <tr key={p.id}>
                         <td><b>{displayName(p)}</b><div className="small muted">{p.email}</div></td>
+                        <td className="small muted">{teamLabel(p.team) ?? 'No team yet'}</td>
                         <td className="small muted">Signed up {fmtDate(p.created_at)}</td>
                         <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                           <button className="btn btn-primary btn-sm" onClick={() => patch(p, { is_active: true, role: 'editor' }, `${displayName(p)} approved as editor`)}>Approve as editor</button>{' '}
@@ -129,10 +130,10 @@ export function UsersPage() {
             )}
             <AiUsageCard people={rows} />
             <div className="card">
-              <div className="card-title">Team ({active.length})</div>
-              <div className="card-sub"><b>Admins</b> manage users and can delete. <b>Editors</b> create, edit and publish. <b>Viewers</b> see assessments and responses.</div>
+              <div className="card-title">People ({active.length})</div>
+              <div className="card-sub"><b>Admins</b> see everything, manage users and can delete. <b>Editors</b> create, edit and publish. <b>Viewers</b> see assessments and responses. Everyone sees their <b>team's</b> assessments plus anything shared with them.</div>
               <table className="table">
-                <thead><tr><th>Name</th><th>Role</th><th>Joined</th><th /></tr></thead>
+                <thead><tr><th>Name</th><th>Role</th><th>Team</th><th>Joined</th><th /></tr></thead>
                 <tbody>
                   {active.map((p) => (
                     <tr key={p.id}>
@@ -144,6 +145,10 @@ export function UsersPage() {
                           <option value="editor">Editor</option>
                           <option value="viewer">Viewer</option>
                         </select>
+                      </td>
+                      <td>
+                        <TeamSelect className="select input-sm" placeholder="No team" value={p.team}
+                          onChange={(team) => team && patch(p, { team }, 'Team updated')} />
                       </td>
                       <td className="small muted">{fmtDate(p.created_at)}</td>
                       <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>

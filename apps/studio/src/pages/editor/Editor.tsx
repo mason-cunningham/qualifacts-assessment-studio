@@ -6,13 +6,16 @@ import { AssessmentExperience, type Screen } from '@qq/ui';
 import { TopBar } from '../../components/Layout';
 import { ErrorBox, Loading, Modal, StatusPill, useToast } from '../../components/ui';
 import { ShareKit } from '../../components/ShareKit';
+import { ShareAccessDialog } from '../../components/ShareAccess';
+import { IconShare } from '../../components/icons';
 import { ReviewButton } from '../../components/AiHelpers';
 import { supabase, T, errorMessage } from '../../lib/supabase';
 import { useAuth } from '../../lib/auth';
 import { readDefinition } from '../../lib/assessments';
+import { accessFor, canEditRow, canManageSharing } from '../../lib/access';
 import { resolveForPublish } from '../../lib/products';
 import { copyText, publicUrl } from '../../lib/format';
-import type { AssessmentRow, VersionRow } from '../../lib/types';
+import type { AssessmentRow, ShareRow, VersionRow } from '../../lib/types';
 import { sampleAnswers } from './helpers';
 import { ContentTab } from './ContentTab';
 import { ScoringTab } from './ScoringTab';
@@ -37,9 +40,11 @@ type SaveState = 'saved' | 'dirty' | 'saving' | 'error' | 'conflict';
 
 export function EditorPage() {
   const { id } = useParams<{ id: string }>();
-  const { canEdit, publicBaseUrl } = useAuth();
+  const { profile, publicBaseUrl } = useAuth();
   const toast = useToast();
   const [row, setRow] = useState<AssessmentRow | null>(null);
+  const [myShares, setMyShares] = useState<ShareRow[]>([]);
+  const [sharing, setSharing] = useState(false);
   const [def, setDef] = useState<AssessmentDefinition | null>(null);
   const [loadError, setLoadError] = useState<unknown>(null);
   const [tab, setTab] = useState<Tab>('content');
@@ -59,14 +64,21 @@ export function EditorPage() {
   rowRef.current = row;
   defRef.current = def;
 
+  // Per-assessment permission (owner / team / shared), not just the global role
+  const canEdit = row ? canEditRow(accessFor(row, profile, myShares), profile) : false;
   const readOnly = !canEdit || saveState === 'conflict';
 
   // ── Load ──
   useEffect(() => {
     let cancelled = false;
-    supabase.from(T.assessments).select('*').eq('id', id!).single().then(({ data, error }) => {
+    if (profile) {
+      supabase.from(T.shares).select('*').eq('assessment_id', id!).eq('user_id', profile.id)
+        .then(({ data }) => !cancelled && setMyShares((data as ShareRow[]) ?? []));
+    }
+    supabase.from(T.assessments).select('*').eq('id', id!).maybeSingle().then(({ data, error }) => {
       if (cancelled) return;
       if (error) return setLoadError(error);
+      if (!data) return setLoadError(new Error("This assessment doesn't exist or hasn't been shared with you. Ask its owner to share it."));
       const r = data as AssessmentRow;
       const d = readDefinition(r.draft_definition);
       if (!d) return setLoadError(new Error('This assessment’s content could not be read.'));
@@ -74,7 +86,8 @@ export function EditorPage() {
       setDef(d);
     });
     return () => { cancelled = true; };
-  }, [id]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, profile?.id]);
 
   const publishedVersionId = row?.published_version_id;
   useEffect(() => {
@@ -196,6 +209,7 @@ export function EditorPage() {
         </span>
         {saveState === 'conflict' && <button className="btn btn-secondary btn-sm" onClick={() => window.location.reload()}>Reload</button>}
         {row.status === 'published' && <button className="btn btn-secondary btn-sm" onClick={async () => (await copyText(link)) && toast.ok('Link copied')}>Copy link</button>}
+        {canManageSharing(row, profile) && <button className="btn btn-secondary btn-sm" onClick={() => setSharing(true)}><IconShare />Share</button>}
         {canEdit && <ReviewButton def={def} onJumpToQuestion={(qid) => { setTab('content'); setOpenQuestion(qid); }} />}
         <Link className="btn btn-secondary btn-sm" to={`/assessments/${row.id}/responses`}>Responses</Link>
         {canEdit && row.status === 'published' && <button className="btn btn-ghost btn-sm" onClick={() => setStatus('paused')}>Pause</button>}
@@ -276,6 +290,14 @@ export function EditorPage() {
           </div>
         )}
       </div>
+
+      {sharing && (
+        <ShareAccessDialog
+          row={row}
+          onClose={() => setSharing(false)}
+          onTeamChanged={(team) => setRow((r) => (r ? { ...r, team } : r))}
+        />
+      )}
 
       {publishing && (
         <PublishDialog

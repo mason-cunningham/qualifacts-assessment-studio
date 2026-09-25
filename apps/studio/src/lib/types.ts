@@ -4,6 +4,23 @@ export type Role = 'admin' | 'editor' | 'viewer';
 export type AssessmentStatus = 'draft' | 'published' | 'paused' | 'archived';
 export type FollowUpStatus = 'new' | 'contacted' | 'qualified' | 'disqualified' | 'customer';
 
+/** Teams (keys must match q_quiz_is_team() in supabase/005_teams_sharing.sql). */
+export const TEAMS = {
+  account_manager: 'Account Manager',
+  sales_ae: 'Sales (AEs)',
+  customer_success: 'Customer Success',
+  marketing: 'Marketing',
+  solutions_consulting: 'Solutions Consulting',
+  bdr_cdr: 'BDR/CDR',
+  product: 'Product',
+  support: 'Support',
+  implementation: 'Implementation',
+  product_training: 'Product Training',
+} as const;
+export type Team = keyof typeof TEAMS;
+export const TEAM_OPTIONS = Object.entries(TEAMS) as [Team, string][];
+export const teamLabel = (t: string | null | undefined) => (t && t in TEAMS ? TEAMS[t as Team] : null);
+
 export interface Profile {
   id: string;
   email: string;
@@ -11,6 +28,18 @@ export interface Profile {
   title: string | null;
   role: Role;
   is_active: boolean;
+  team: Team | null;
+  created_at: string;
+}
+
+export type SharePermission = 'view' | 'edit';
+
+export interface ShareRow {
+  id: string;
+  assessment_id: string;
+  user_id: string;
+  permission: SharePermission;
+  granted_by: string | null;
   created_at: string;
 }
 
@@ -36,6 +65,7 @@ export interface AssessmentRow {
   closes_at: string | null;
   published_at: string | null;
   owner_id: string | null;
+  team: Team | null;
   created_by: string | null;
   updated_by: string | null;
   created_at: string;
