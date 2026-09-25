@@ -223,7 +223,7 @@ export function EditorPage() {
           </div>
           <div className="ed-body">
             {hasUnpublishedChanges && (
-              <div className="card small" style={{ background: '#fff8e6', borderColor: '#f2d48a', marginBottom: 16 }}>
+              <div className="card small callout-warn" style={{ marginBottom: 16 }}>
                 You have changes that aren't live yet. Prospects see the last published version until you click <b>Publish changes</b>.
               </div>
             )}

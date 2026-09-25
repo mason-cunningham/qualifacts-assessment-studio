@@ -103,7 +103,7 @@ export function ResponseDetailPage() {
         <div className="grid" style={{ gridTemplateColumns: 'minmax(0, 1fr) 360px', alignItems: 'start' }}>
           <div>
             <div className="card-sub">What they saw ({versionLabel || 'version unknown'}). Rendered from their saved answers.</div>
-            <div style={{ border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
+            <div style={{ border: '1px solid var(--s-line)', borderRadius: 'var(--s-r-lg)', overflow: 'hidden' }}>
               {def && results ? (
                 <div className="qq-root qq-narrow" data-accent={def.theme.accent}>
                   <main className="qq-main"><ResultsView definition={def} results={results} lead={lead} hideActions /></main>

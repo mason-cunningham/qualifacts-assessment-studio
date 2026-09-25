@@ -244,7 +244,7 @@ function KnowledgeEditor({ draft, topics, readOnly, onClose, onSaved }: {
           </div>
           <input ref={fileRef} type="file" hidden accept={ACCEPTED_CONTEXT_FILES} onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) onFile(f); }} />
         </div>
-        {pendingPdf && <div className="card small" style={{ background: '#fff8e6', borderColor: '#f2d48a', marginBottom: 8 }}>“{pendingPdf.name}” is uploaded. Click <b>Extract with AI</b> to turn it into editable notes.</div>}
+        {pendingPdf && <div className="card small callout-warn" style={{ marginBottom: 8 }}>“{pendingPdf.name}” is uploaded. Click <b>Extract with AI</b> to turn it into editable notes.</div>}
         {preview ? (
           <div className="card qq-prose" style={{ maxHeight: 460, overflowY: 'auto' }}><Markdown text={d.content || '*Nothing yet*'} /></div>
         ) : (

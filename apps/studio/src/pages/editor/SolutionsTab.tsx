@@ -118,7 +118,7 @@ export function SolutionsTab({ def, update, readOnly }: EditorProps) {
           <div className="card-title">Which products solve each section?</div>
           <div className="card-sub">Shown as "Solved by: …" on each section of the results page.</div>
           {def.sections.map((s, si) => (
-            <div key={s.id} className="row" style={{ flexWrap: 'wrap', padding: '6px 0', borderBottom: '1px solid #f0ebe5' }}>
+            <div key={s.id} className="row hairline-bottom" style={{ flexWrap: 'wrap', padding: '10px 0' }}>
               <b style={{ minWidth: 200, color: 'var(--navy)' }}>{s.name}</b>
               {def.products.map((p) => (
                 <label key={p.id} className="check small">
@@ -159,7 +159,7 @@ export function SolutionsTab({ def, update, readOnly }: EditorProps) {
             <div className="card-title">Recommend by answer</div>
             <div className="card-sub">Pick a product for any answer that signals a need. "Rank" orders cards (lower first), e.g. 0 = Top Priority, 5 = Opportunity.</div>
             {choiceQuestions.map((q) => (
-              <div key={q.id} style={{ padding: '8px 0', borderBottom: '1px solid #f0ebe5' }}>
+              <div key={q.id} className="hairline-bottom" style={{ padding: '10px 0' }}>
                 <b className="small" style={{ color: 'var(--navy)' }}>{q.shortLabel || q.text}</b>
                 {q.options.map((o) => {
                   const r = o.recommend;

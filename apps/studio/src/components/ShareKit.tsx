@@ -39,7 +39,7 @@ export function ShareKit({ slug, live }: { slug: string; live: boolean }) {
 
   return (
     <div className="stack">
-      {!live && <div className="card small" style={{ background: '#fff8e6', borderColor: '#f2d48a' }}>This assessment isn't live yet. Links will show "not found" until you publish.</div>}
+      {!live && <div className="card small callout-warn">This assessment isn't live yet. Links will show "not found" until you publish.</div>}
       <Field label="Public link">
         <div className="link-box">
           <input className="input" readOnly value={cleanUrl} onFocus={(e) => e.target.select()} />
@@ -48,7 +48,7 @@ export function ShareKit({ slug, live }: { slug: string; live: boolean }) {
         </div>
       </Field>
 
-      <div className="card" style={{ background: '#fbf9f7' }}>
+      <div className="card subtle-box">
         <div className="card-title">Tracking link builder</div>
         <div className="card-sub">Tag links by event, channel, or rep so you can see where leads come from in Reports.</div>
         <div className="grid grid-2">

@@ -298,7 +298,7 @@ export function GenerateWizardPage() {
               </div>
               <div className="stack" style={{ gap: 6 }}>
                 {files.map((f, i) => (
-                  <div key={i} className="row-between small" style={{ padding: '6px 10px', background: '#fbf9f7', borderRadius: 6 }}>
+                  <div key={i} className="row-between small subtle-box" style={{ padding: '8px 12px' }}>
                     <span>📄 {f.kind === 'stored' ? f.file.name : f.attachment.name} <span className="muted">({f.kind === 'stored' ? `${Math.round(f.size / 1024)} KB PDF` : `${Math.round(f.size / 1000)}k chars`})</span></span>
                     <button className="btn btn-ghost btn-sm" onClick={() => setFiles((cur) => cur.filter((_, j) => j !== i))}>Remove</button>
                   </div>
@@ -325,7 +325,7 @@ export function GenerateWizardPage() {
               ) : (
                 <div className="stack" style={{ gap: 4, maxHeight: 300, overflowY: 'auto' }}>
                   {filteredKnowledge.map((k) => (
-                    <label key={k.id} className="check" style={{ padding: '6px 8px', borderRadius: 6, background: kSel.has(k.id) ? 'rgba(0,178,169,0.07)' : undefined }}>
+                    <label key={k.id} className={`check pick-row ${kSel.has(k.id) ? 'on' : ''}`} style={{ padding: '8px 10px' }}>
                       <input type="checkbox" checked={kSel.has(k.id)} onChange={(e) => setKSel((s) => { const n = new Set(s); if (e.target.checked) n.add(k.id); else n.delete(k.id); return n; })} />
                       <span style={{ flex: 1 }}><b style={{ color: 'var(--navy)' }}>{k.title}</b> <span className="small muted">· {KNOWLEDGE_KIND_LABELS[k.kind]}{k.topic ? ` · ${k.topic}` : ''}{k.product_line ? ` · ${k.product_line}` : ''}</span></span>
                       <span className="small muted">{Math.max(1, Math.round(k.char_count / 1000))}k</span>
@@ -457,7 +457,7 @@ function ReviewPane(p: {
                 {s.productIds.length > 0 && <span className="small muted">Solved by: {s.productIds.map(productName).join(', ')}</span>}
               </div>
               {sq.map((q) => (
-                <div key={q.id} style={{ padding: '8px 0', borderTop: '1px solid #f0ebe5' }}>
+                <div key={q.id} className="hairline-top" style={{ padding: '10px 0' }}>
                   <div style={{ fontWeight: 600, color: 'var(--navy)' }}>
                     Q{qs.indexOf(q) + 1}. {q.text}{' '}
                     {q.role !== 'scored' && <span className="pill pill-draft">{q.role}</span>}{' '}
@@ -487,7 +487,7 @@ function ReviewPane(p: {
           <div className="card">
             <div className="card-title">Score tiers</div>
             {[...def.scoring.tiers].sort((a, b) => b.min - a.min).map((t) => (
-              <div key={t.id} style={{ padding: '6px 0', borderTop: '1px solid #f0ebe5' }}>
+              <div key={t.id} className="hairline-top" style={{ padding: '8px 0' }}>
                 <b style={{ color: t.color }}>{t.label}</b> <span className="small muted">{t.min}–{t.max}</span>
                 <div className="small">{t.summary}</div>
               </div>

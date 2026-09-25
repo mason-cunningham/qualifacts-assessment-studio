@@ -93,7 +93,7 @@ export function ScoringTab({ def, update, readOnly }: EditorProps) {
                 );
               }
               return (
-                <div key={q.id} style={{ borderBottom: '1px solid #f0ebe5', paddingBottom: 10 }}>
+                <div key={q.id} className="hairline-bottom" style={{ paddingBottom: 12 }}>
                   <div className="row-between">
                     <b style={{ color: 'var(--navy)', fontSize: 13 }}>{q.shortLabel || q.text}</b>
                     <label className="check small">Weight <NumberInput className="input input-sm input-num" min={0} step={0.5} value={q.weight}
