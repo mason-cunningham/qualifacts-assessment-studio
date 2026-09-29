@@ -180,6 +180,81 @@ ${briefText(brief)}
 </brief>`;
 }
 
+// ── Staged generation ───────────────────────────────────────────────────────
+// Stage 1 plans the assessment (no questions); stage 2 writes one section's questions.
+// Both keep the reference material first (identical, prompt-cached) and the task last.
+
+export function planTask(brief: GenerateBrief, opts: { importMode?: boolean; revision?: { notes: string; previous: unknown } } = {}): string {
+  const goal = opts.importMode
+    ? `Plan the conversion of the uploaded questionnaire into a complete assessment. Keep the source's questions: group them into sections, and in each section's questionBrief list the source questions that belong there (numbered or quoted) so every source question lands in exactly one section. questionCount is how many of them the section holds.`
+    : `Design a complete assessment from this brief, using the reference material above.`;
+  const parts = [
+    `${goal}
+
+This is step 1 of 2. Produce everything EXCEPT the questions: title, intro, scoring method, sections, score tiers, section tiers, guidance insights, recommendations, lead capture, results copy and design notes. Questions are written next, section by section, from your plan, so for every section give:
+- questionCount: how many questions it gets (the counts should add up to the target)
+- questionBrief: 2–4 sentences on exactly what its questions should cover, which practices separate strong from weak answers, and which of the section's products the weak answers point to. Don't repeat topics across sections.
+Use tierBasis "percent" (the questions and their points aren't written yet), and write tiers and insights that work for any reasonable point spread.
+
+<brief>
+${briefText(brief)}
+</brief>`,
+  ];
+  if (opts.revision) {
+    parts.push(`A previous draft is below. Revise the plan to apply the creator's revision notes and keep everything else that was good.
+
+<revision_notes>
+${opts.revision.notes}
+</revision_notes>
+
+<previous_draft>
+${JSON.stringify(opts.revision.previous)}
+</previous_draft>`);
+  }
+  return parts.join('\n\n');
+}
+
+export function sectionTask(
+  brief: GenerateBrief,
+  plan: unknown,
+  sectionKey: string,
+  opts: { importMode?: boolean; revision?: { notes: string; previous: unknown[] } } = {},
+): string {
+  const p = plan as { sections?: { key: string; name: string; productIds: string[]; questionCount: number; questionBrief: string }[]; scoringMethod?: string };
+  const s = p.sections?.find((x) => x.key === sectionKey);
+  const parts = [
+    `This is step 2 of 2. The assessment plan is below. Write the questions for ONE section only: "${s?.name ?? sectionKey}" (key "${sectionKey}").
+
+<brief>
+${briefText(brief)}
+</brief>
+
+<plan>
+${JSON.stringify(plan)}
+</plan>
+
+Rules for this section:
+- Write exactly ${s?.questionCount ?? 'the planned number of'} questions covering: ${s?.questionBrief ?? 'the section topic'}
+- ${opts.importMode ? "Convert the listed source questions faithfully (tidy wording only), in the source's order, and add answer choices, points and recommendations where the source lacks them." : 'Stay inside this section\'s scope; the other sections are written separately, so never duplicate their topics.'}
+- Every question's sectionKey is "${sectionKey}", and every key starts with "${sectionKey}-" (e.g. "${sectionKey}-q1").
+- Branching (showIfQuestionKey) may only point to an EARLIER question in this same section.
+- Follow the plan's scoringMethod ("${p.scoringMethod ?? 'points'}").
+- Recommend only this section's products: ${s?.productIds?.length ? s.productIds.join(', ') : 'none (leave recommendProductId "")'}.`,
+  ];
+  if (opts.revision) {
+    parts.push(`This section's questions from the previous draft are below. Apply the creator's revision notes where they affect this section and keep everything else that was good.
+
+<revision_notes>
+${opts.revision.notes}
+</revision_notes>
+
+<previous_questions>
+${JSON.stringify(opts.revision.previous)}
+</previous_questions>`);
+  }
+  return parts.join('\n\n');
+}
+
 export function extractKnowledgeTask(req: ExtractKnowledgeRequest): string {
   return `Turn the uploaded material into a reusable knowledge document that future assessment generation can draw on. Capture every concrete fact, capability, best practice, benchmark, and piece of terminology, organized under clear Markdown headings. Leave out marketing filler, and don't add facts that aren't in the source.${req.hint ? `\n\nCreator's note about this material: ${req.hint}` : ''}`;
 }

@@ -21,6 +21,8 @@ const pkg = (name) => JSON.parse(readFileSync(join(root, 'node_modules', name, '
 // 1. Schemas
 const schemas = {
   AiDraft: S.AiDraftSchema,
+  AiPlan: S.AiPlanSchema,
+  AiSectionQuestions: S.AiSectionQuestionsSchema,
   RewriteResult: S.RewriteResultSchema,
   OptionsResult: S.OptionsResultSchema,
   TierCopyResult: S.TierCopyResultSchema,

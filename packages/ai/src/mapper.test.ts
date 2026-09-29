@@ -4,6 +4,8 @@ import { computeResults } from '@qq/engine';
 import type { ProductSnapshot } from '@qq/schema';
 import { draftToDefinition, summarizeDefinition } from './mapper';
 import { extractJsonObject } from './json';
+import { mergeStages, sectionQuestionsFromDraft } from './stages';
+import type { AiPlan } from './schemas';
 import * as S from './schemas';
 import { AiDraftSchema, type AiDraft, type AiOption, type AiQuestion } from './schemas';
 import { contextBlocks, generateTask, SYSTEM_PROMPT } from './prompts';
@@ -63,7 +65,7 @@ function baseDraft(overrides: Partial<AiDraft> = {}): AiDraft {
 
 describe('structured-output schemas', () => {
   // The API rejects schemas with more than 16 union-typed parameters (nullable = union).
-  const names = ['AiDraftSchema', 'RewriteResultSchema', 'OptionsResultSchema', 'TierCopyResultSchema', 'ReviewResultSchema', 'KnowledgeExtractSchema'] as const;
+  const names = ['AiDraftSchema', 'AiPlanSchema', 'AiSectionQuestionsSchema', 'RewriteResultSchema', 'OptionsResultSchema', 'TierCopyResultSchema', 'ReviewResultSchema', 'KnowledgeExtractSchema'] as const;
   for (const n of names) {
     it(`${n} has no union-typed parameters and closes every object`, () => {
       const json = JSON.stringify(zodOutputFormat(S[n]).schema);
@@ -75,6 +77,36 @@ describe('structured-output schemas', () => {
       expect(json).not.toMatch(/"minimum"|"maximum"|"minLength"|"maxLength"/);
     });
   }
+});
+
+describe('mergeStages', () => {
+  const draft = baseDraft();
+  const { questions: _q, sections, ...rest } = draft;
+  const plan: AiPlan = {
+    ...rest,
+    sections: sections.map((s) => ({ ...s, questionCount: 1, questionBrief: `Cover ${s.name}` })),
+  };
+
+  it('rebuilds a draft equivalent to single-shot generation', () => {
+    const merged = mergeStages(plan, { s1: [draft.questions[0]], s2: [draft.questions[1]] });
+    expect(AiDraftSchema.safeParse(merged).success).toBe(true);
+    expect(merged.sections).toEqual(sections);
+    expect(merged.questions.map((x) => x.key)).toEqual(['q1', 'q2']);
+    expect(draftToDefinition(merged, products).definition.questions).toHaveLength(2);
+  });
+
+  it('keeps plan section order, forces sectionKey, and de-duplicates keys with branching remapped', () => {
+    const a = q('q1', 'wrong', 'A?', [opt('Yes', 1), opt('No', 0)]);
+    const b = q('q2', 's2', 'B?', [opt('x', 1)], { showIfQuestionKey: 'q1', showIfOptionLabels: ['Yes'] });
+    const merged = mergeStages(plan, { s2: [q('q1', 's2', 'Gate?', [opt('Yes', 1), opt('No', 0)]), b], s1: [a] });
+    expect(merged.questions.map((x) => [x.key, x.sectionKey])).toEqual([['q1', 's1'], ['s2-q1', 's2'], ['q2', 's2']]);
+    expect(merged.questions[2].showIfQuestionKey).toBe('s2-q1');
+  });
+
+  it('pulls one section from a previous draft for revisions', () => {
+    expect(sectionQuestionsFromDraft(draft, 's2').map((x) => x.key)).toEqual(['q2']);
+    expect(sectionQuestionsFromDraft(null, 's1')).toEqual([]);
+  });
 });
 
 describe('extractJsonObject', () => {

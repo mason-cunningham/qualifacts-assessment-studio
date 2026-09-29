@@ -131,6 +131,24 @@ export const AiDraftSchema = z.object({
   designNotes: z.string().describe('2–4 sentences for the creator explaining the structure and scoring choices'),
 });
 
+// ── Staged generation (fits the 150 s Edge Function limit) ─────────────────
+// 1. AiPlan: everything except questions, plus a brief per section.
+// 2. AiSectionQuestions: one section's questions (run in parallel).
+// mergeStages() (stages.ts) combines them into an AiDraft.
+
+export const AiPlanSectionSchema = AiSectionSchema.extend({
+  questionCount: z.number().describe('How many questions this section should have'),
+  questionBrief: z.string().describe('What the questions in this section should cover (in import mode: which source questions belong here, quoted or numbered)'),
+});
+
+export const AiPlanSchema = AiDraftSchema.omit({ questions: true, sections: true }).extend({
+  sections: z.array(AiPlanSectionSchema),
+});
+
+export const AiSectionQuestionsSchema = z.object({
+  questions: z.array(AiQuestionSchema),
+});
+
 // ── Editor helpers ──────────────────────────────────────────────────────────
 
 export const RewriteResultSchema = z.object({
@@ -177,6 +195,9 @@ export type AiSection = z.infer<typeof AiSectionSchema>;
 export type AiTier = z.infer<typeof AiTierSchema>;
 export type AiInsight = z.infer<typeof AiInsightSchema>;
 export type AiDraft = z.infer<typeof AiDraftSchema>;
+export type AiPlan = z.infer<typeof AiPlanSchema>;
+export type AiPlanSection = z.infer<typeof AiPlanSectionSchema>;
+export type AiSectionQuestions = z.infer<typeof AiSectionQuestionsSchema>;
 export type RewriteResult = z.infer<typeof RewriteResultSchema>;
 export type OptionsResult = z.infer<typeof OptionsResultSchema>;
 export type TierCopyResult = z.infer<typeof TierCopyResultSchema>;

@@ -8,7 +8,7 @@ import { TopBar } from '../../components/Layout';
 import { Field, Loading, useToast } from '../../components/ui';
 import { supabase, T } from '../../lib/supabase';
 import { useAuth } from '../../lib/auth';
-import { runAi } from '../../lib/ai';
+import { generateDraft } from '../../lib/generate';
 import { ACCEPTED_CONTEXT_FILES, estimateTokens, prepareFile, splitPrepared, type PreparedFile } from '../../lib/files';
 import { createAssessment, uniqueSlug } from '../../lib/assessments';
 import { productFromRow } from '../../lib/products';
@@ -54,6 +54,7 @@ export function GenerateWizardPage() {
 
   const [phase, setPhase] = useState('');
   const [chars, setChars] = useState(0);
+  const [sections, setSections] = useState({ done: 0, total: 0 });
   const [started, setStarted] = useState(0);
   const [now, setNow] = useState(Date.now());
   const abortRef = useRef<AbortController | null>(null);
@@ -121,6 +122,7 @@ export function GenerateWizardPage() {
     setStep('generating');
     setPhase('Starting');
     setChars(0);
+    setSections({ done: 0, total: 0 });
     setStarted(Date.now());
     const { files: stored, attachments } = splitPrepared(files);
     const base = {
@@ -132,15 +134,16 @@ export function GenerateWizardPage() {
       attachments,
     };
     try {
-      const res = await runAi(
-        importMode
-          ? { mode: 'import', ...base }
-          : { mode: 'generate', ...base, ...(revisionNotes && draft ? { revisionNotes, previousDraft: draft } : {}) },
-        { signal: ctl.signal, onProgress: (p, c) => { setPhase(p); setChars(c); } },
-      );
+      // Plan first, then each section's questions in parallel (each call stays under the server time limit)
+      const res = await generateDraft(base, {
+        importMode,
+        revision: revisionNotes && draft ? { notes: revisionNotes, previous: draft } : undefined,
+        signal: ctl.signal,
+        onProgress: (p) => { setPhase(p.phase); setChars(p.chars); setSections({ done: p.sectionsDone, total: p.sectionsTotal }); },
+      });
       const allowed = (products ?? []).filter((p) => pSel.has(p.id)).map(productFromRow);
-      const conv = draftToDefinition(res.data, allowed);
-      setDraft(res.data);
+      const conv = draftToDefinition(res.draft, allowed);
+      setDraft(res.draft);
       setConversion(conv);
       setRequestId(res.requestId);
       setRevision('');
@@ -376,8 +379,14 @@ export function GenerateWizardPage() {
           <div className="card" style={{ textAlign: 'center', padding: 48 }}>
             <div style={{ fontSize: 34 }}>✨</div>
             <h2 style={{ margin: '10px 0 6px' }}>{phase || 'Working'}…</h2>
+            {sections.total > 0 && (
+              <div className="tier-bar" style={{ maxWidth: 360, margin: '12px auto', background: 'var(--s-line)' }} aria-label={`${sections.done} of ${sections.total} sections done`}>
+                <div style={{ width: `${Math.max(4, (100 * sections.done) / sections.total)}%`, background: 'var(--teal)', transition: 'width .4s' }} />
+              </div>
+            )}
             <p className="muted">
-              {Math.floor((now - started) / 1000)}s elapsed{chars ? ` · ${chars.toLocaleString()} characters written` : ''}. Full assessments usually take 1–3 minutes.
+              {Math.floor((now - started) / 1000)}s elapsed{chars ? ` · ${chars.toLocaleString()} characters written` : ''}.
+              {' '}We plan the assessment first, then write each section's questions in parallel. Usually about a minute.
             </p>
             <button className="btn btn-ghost" onClick={() => abortRef.current?.abort()}>Cancel</button>
           </div>

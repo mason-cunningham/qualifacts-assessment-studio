@@ -1,5 +1,7 @@
 import {
   AiDraftSchema,
+  AiPlanSchema,
+  AiSectionQuestionsSchema,
   KnowledgeExtractSchema,
   OptionsResultSchema,
   ReviewResultSchema,
@@ -7,6 +9,10 @@ import {
   TierCopyResultSchema,
   type AiDraft,
   type AiEvent,
+  type AiPlan,
+  type AiSectionQuestions,
+  type GeneratePlanRequest,
+  type GenerateSectionRequest,
   type AiRequest,
   type ExtractKnowledgeRequest,
   type GenerateRequest,
@@ -27,6 +33,8 @@ const PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
 
 type ResultFor<R extends AiRequest> =
   R extends GenerateRequest | ImportRequest ? AiDraft
+  : R extends GeneratePlanRequest ? AiPlan
+  : R extends GenerateSectionRequest ? AiSectionQuestions
   : R extends ExtractKnowledgeRequest ? KnowledgeExtract
   : R extends RewriteRequest ? RewriteResult
   : R extends OptionsRequest ? OptionsResult
@@ -37,6 +45,8 @@ type ResultFor<R extends AiRequest> =
 const SCHEMA = {
   generate: AiDraftSchema,
   import: AiDraftSchema,
+  generate_plan: AiPlanSchema,
+  generate_section: AiSectionQuestionsSchema,
   extract_knowledge: KnowledgeExtractSchema,
   rewrite: RewriteResultSchema,
   options: OptionsResultSchema,

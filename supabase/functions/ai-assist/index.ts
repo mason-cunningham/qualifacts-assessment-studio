@@ -131,6 +131,68 @@ Keep the source's questions and their meaning. Tidy wording only for clarity, an
 ${briefText(brief)}
 </brief>`;
 }
+function planTask(brief, opts = {}) {
+  const goal = opts.importMode ? `Plan the conversion of the uploaded questionnaire into a complete assessment. Keep the source's questions: group them into sections, and in each section's questionBrief list the source questions that belong there (numbered or quoted) so every source question lands in exactly one section. questionCount is how many of them the section holds.` : `Design a complete assessment from this brief, using the reference material above.`;
+  const parts = [
+    `${goal}
+
+This is step 1 of 2. Produce everything EXCEPT the questions: title, intro, scoring method, sections, score tiers, section tiers, guidance insights, recommendations, lead capture, results copy and design notes. Questions are written next, section by section, from your plan, so for every section give:
+- questionCount: how many questions it gets (the counts should add up to the target)
+- questionBrief: 2\u20134 sentences on exactly what its questions should cover, which practices separate strong from weak answers, and which of the section's products the weak answers point to. Don't repeat topics across sections.
+Use tierBasis "percent" (the questions and their points aren't written yet), and write tiers and insights that work for any reasonable point spread.
+
+<brief>
+${briefText(brief)}
+</brief>`
+  ];
+  if (opts.revision) {
+    parts.push(`A previous draft is below. Revise the plan to apply the creator's revision notes and keep everything else that was good.
+
+<revision_notes>
+${opts.revision.notes}
+</revision_notes>
+
+<previous_draft>
+${JSON.stringify(opts.revision.previous)}
+</previous_draft>`);
+  }
+  return parts.join("\n\n");
+}
+function sectionTask(brief, plan, sectionKey, opts = {}) {
+  const p = plan;
+  const s = p.sections?.find((x) => x.key === sectionKey);
+  const parts = [
+    `This is step 2 of 2. The assessment plan is below. Write the questions for ONE section only: "${s?.name ?? sectionKey}" (key "${sectionKey}").
+
+<brief>
+${briefText(brief)}
+</brief>
+
+<plan>
+${JSON.stringify(plan)}
+</plan>
+
+Rules for this section:
+- Write exactly ${s?.questionCount ?? "the planned number of"} questions covering: ${s?.questionBrief ?? "the section topic"}
+- ${opts.importMode ? "Convert the listed source questions faithfully (tidy wording only), in the source's order, and add answer choices, points and recommendations where the source lacks them." : "Stay inside this section's scope; the other sections are written separately, so never duplicate their topics."}
+- Every question's sectionKey is "${sectionKey}", and every key starts with "${sectionKey}-" (e.g. "${sectionKey}-q1").
+- Branching (showIfQuestionKey) may only point to an EARLIER question in this same section.
+- Follow the plan's scoringMethod ("${p.scoringMethod ?? "points"}").
+- Recommend only this section's products: ${s?.productIds?.length ? s.productIds.join(", ") : 'none (leave recommendProductId "")'}.`
+  ];
+  if (opts.revision) {
+    parts.push(`This section's questions from the previous draft are below. Apply the creator's revision notes where they affect this section and keep everything else that was good.
+
+<revision_notes>
+${opts.revision.notes}
+</revision_notes>
+
+<previous_questions>
+${JSON.stringify(opts.revision.previous)}
+</previous_questions>`);
+  }
+  return parts.join("\n\n");
+}
 function extractKnowledgeTask(req) {
   return `Turn the uploaded material into a reusable knowledge document that future assessment generation can draw on. Capture every concrete fact, capability, best practice, benchmark, and piece of terminology, organized under clear Markdown headings. Leave out marketing filler, and don't add facts that aren't in the source.${req.hint ? `
 
@@ -182,7 +244,11 @@ var AI_LIMITS = {
   maxContextChars: 6e5,
   /** Max PDF size in bytes */
   maxFileBytes: 20 * 1024 * 1024,
-  maxFiles: 5
+  maxFiles: 5,
+  /** Supabase Free kills Edge Functions at 150 s; each call stops itself before that */
+  stepTimeoutMs: 135e3,
+  /** Section calls run this many at a time */
+  sectionConcurrency: 3
 };
 
 // packages/ai/src/json.ts
@@ -688,6 +754,511 @@ var SCHEMAS = {
     ],
     "description": '{$schema: "https://json-schema.org/draft/2020-12/schema"}'
   },
+  "AiPlan": {
+    "$defs": {
+      "__schema0": {
+        "type": "object",
+        "properties": {
+          "min": {
+            "type": "number"
+          },
+          "max": {
+            "type": "number"
+          },
+          "label": {
+            "type": "string"
+          },
+          "color": {
+            "type": "string",
+            "description": '{enum: ["teal","amber","magenta","darkMagenta","navy","grey"]}'
+          },
+          "summary": {
+            "type": "string",
+            "description": "One sentence under the tier name"
+          },
+          "body": {
+            "type": "string",
+            "description": 'Guidance paragraph (Markdown; may use {{weakestSection}}, {{score}}); "" for none'
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "min",
+          "max",
+          "label",
+          "color",
+          "summary",
+          "body"
+        ]
+      }
+    },
+    "type": "object",
+    "properties": {
+      "title": {
+        "type": "string"
+      },
+      "description": {
+        "type": "string"
+      },
+      "productLine": {
+        "type": "string",
+        "description": '"" if not specific to one product line'
+      },
+      "intro": {
+        "type": "object",
+        "properties": {
+          "eyebrow": {
+            "type": "string"
+          },
+          "headline": {
+            "type": "string"
+          },
+          "subheadline": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "bullets": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "startLabel": {
+            "type": "string"
+          },
+          "estimatedMinutes": {
+            "type": "number"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "eyebrow",
+          "headline",
+          "subheadline",
+          "body",
+          "bullets",
+          "startLabel",
+          "estimatedMinutes"
+        ]
+      },
+      "scoringMethod": {
+        "type": "string",
+        "description": '{enum: ["points","gaps","none"]}'
+      },
+      "tierBasis": {
+        "type": "string",
+        "description": '{enum: ["percent","points"]}'
+      },
+      "display": {
+        "type": "string",
+        "description": '{enum: ["percent","points"]}'
+      },
+      "tiers": {
+        "type": "array",
+        "items": {
+          "$ref": "#/$defs/__schema0"
+        }
+      },
+      "sectionTiers": {
+        "type": "array",
+        "items": {
+          "$ref": "#/$defs/__schema0"
+        }
+      },
+      "insights": {
+        "type": "array",
+        "description": 'Ordered guidance rules; the first match is shown. End with an "always" fallback',
+        "items": {
+          "type": "object",
+          "properties": {
+            "when": {
+              "type": "string",
+              "description": '{enum: ["always","sectionsBelowCount","weakestInclude","overallBetween"]}'
+            },
+            "pct": {
+              "type": "number",
+              "description": "sectionsBelowCount: the percent threshold; 0 otherwise"
+            },
+            "atLeast": {
+              "type": "number",
+              "description": "sectionsBelowCount: how many sections; 0 otherwise"
+            },
+            "sectionKeys": {
+              "type": "array",
+              "description": "weakestInclude: section keys; empty otherwise",
+              "items": {
+                "type": "string"
+              }
+            },
+            "topN": {
+              "type": "number",
+              "description": "weakestInclude: among the N weakest sections; 0 otherwise"
+            },
+            "min": {
+              "type": "number",
+              "description": "overallBetween: lower bound; 0 otherwise"
+            },
+            "max": {
+              "type": "number",
+              "description": "overallBetween: upper bound; 0 otherwise"
+            },
+            "body": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "when",
+            "pct",
+            "atLeast",
+            "sectionKeys",
+            "topN",
+            "min",
+            "max",
+            "body"
+          ]
+        }
+      },
+      "recommendations": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "heading": {
+            "type": "string"
+          },
+          "intro": {
+            "type": "string",
+            "description": '"" for none'
+          },
+          "emptyMessage": {
+            "type": "string",
+            "description": 'Shown when nothing is recommended; "" for the default'
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "enabled",
+          "heading",
+          "intro",
+          "emptyMessage"
+        ]
+      },
+      "leadCapture": {
+        "type": "object",
+        "properties": {
+          "position": {
+            "type": "string",
+            "description": '{enum: ["beforeResults","beforeQuestions","off"]}'
+          },
+          "heading": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string",
+            "description": '"" for none'
+          },
+          "fieldKeys": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": '{enum: ["first_name","last_name","email","organization","job_title","phone","state"]}'
+            }
+          },
+          "requiredKeys": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": '{enum: ["first_name","last_name","email","organization","job_title","phone","state"]}'
+            }
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "position",
+          "heading",
+          "body",
+          "fieldKeys",
+          "requiredKeys"
+        ]
+      },
+      "results": {
+        "type": "object",
+        "properties": {
+          "eyebrow": {
+            "type": "string"
+          },
+          "headline": {
+            "type": "string",
+            "description": 'Overrides tier summaries when set; usually ""'
+          },
+          "body": {
+            "type": "string",
+            "description": 'Extra results-page content; "" for none'
+          },
+          "showSectionBreakdown": {
+            "type": "boolean"
+          },
+          "showGapList": {
+            "type": "boolean"
+          },
+          "showInsights": {
+            "type": "boolean"
+          },
+          "showRecommendations": {
+            "type": "boolean"
+          },
+          "primaryCtaLabel": {
+            "type": "string",
+            "description": '"" for no button'
+          },
+          "primaryCtaUrl": {
+            "type": "string",
+            "description": 'Full https:// URL, or ""'
+          },
+          "footerNote": {
+            "type": "string",
+            "description": '"" for none'
+          },
+          "thankYouHeadline": {
+            "type": "string",
+            "description": 'Surveys only; "" otherwise'
+          },
+          "thankYouBody": {
+            "type": "string",
+            "description": 'Surveys only; "" otherwise'
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "eyebrow",
+          "headline",
+          "body",
+          "showSectionBreakdown",
+          "showGapList",
+          "showInsights",
+          "showRecommendations",
+          "primaryCtaLabel",
+          "primaryCtaUrl",
+          "footerNote",
+          "thankYouHeadline",
+          "thankYouBody"
+        ]
+      },
+      "designNotes": {
+        "type": "string",
+        "description": "2\u20134 sentences for the creator explaining the structure and scoring choices"
+      },
+      "sections": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "key": {
+              "type": "string",
+              "description": 'Short unique key, e.g. "s1"'
+            },
+            "name": {
+              "type": "string"
+            },
+            "productIds": {
+              "type": "array",
+              "description": 'IDs of provided products that solve this area (shown as "Solved by")',
+              "items": {
+                "type": "string"
+              }
+            },
+            "showInResults": {
+              "type": "boolean"
+            },
+            "questionCount": {
+              "type": "number",
+              "description": "How many questions this section should have"
+            },
+            "questionBrief": {
+              "type": "string",
+              "description": "What the questions in this section should cover (in import mode: which source questions belong here, quoted or numbered)"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "key",
+            "name",
+            "productIds",
+            "showInResults",
+            "questionCount",
+            "questionBrief"
+          ]
+        }
+      }
+    },
+    "additionalProperties": false,
+    "required": [
+      "title",
+      "description",
+      "productLine",
+      "intro",
+      "scoringMethod",
+      "tierBasis",
+      "display",
+      "tiers",
+      "sectionTiers",
+      "insights",
+      "recommendations",
+      "leadCapture",
+      "results",
+      "designNotes",
+      "sections"
+    ],
+    "description": '{$schema: "https://json-schema.org/draft/2020-12/schema"}'
+  },
+  "AiSectionQuestions": {
+    "type": "object",
+    "properties": {
+      "questions": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "key": {
+              "type": "string",
+              "description": 'Short unique key, e.g. "q1"'
+            },
+            "sectionKey": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "description": '{enum: ["single","multi","dropdown","yesno","rating","text","longtext"]}'
+            },
+            "role": {
+              "type": "string",
+              "description": '{enum: ["scored","gate","segment","info"]}'
+            },
+            "text": {
+              "type": "string"
+            },
+            "shortLabel": {
+              "type": "string",
+              "description": '2\u20135 word label used in reports and results, e.g. "Denial tracking"'
+            },
+            "helpText": {
+              "type": "string",
+              "description": 'Optional help text; "" for none'
+            },
+            "required": {
+              "type": "boolean"
+            },
+            "options": {
+              "type": "array",
+              "description": "Answer choices for single/multi/dropdown/yesno questions; empty for others",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "label": {
+                    "type": "string",
+                    "description": "Answer text shown to the respondent"
+                  },
+                  "points": {
+                    "type": "number",
+                    "description": 'Points for this answer when scoringMethod is "points"; 0 otherwise'
+                  },
+                  "isGap": {
+                    "type": "boolean",
+                    "description": "True when this answer reveals an operational gap"
+                  },
+                  "notApplicable": {
+                    "type": "boolean",
+                    "description": "On a gate question: marks the section not applicable. On a scored question: excludes it from scoring"
+                  },
+                  "allowOtherText": {
+                    "type": "boolean",
+                    "description": 'True for an "Other (please specify)" answer'
+                  },
+                  "recommendProductId": {
+                    "type": "string",
+                    "description": 'ID of a provided product that solves the need this answer reveals, or "" for none'
+                  },
+                  "recommendBadge": {
+                    "type": "string",
+                    "description": 'Short badge for the recommendation card, e.g. "Top Priority" or "Opportunity"; "" if no recommendation'
+                  },
+                  "recommendRank": {
+                    "type": "number",
+                    "description": "Lower ranks sort first (0 for the weakest answer, 5 for a partial answer)"
+                  }
+                },
+                "additionalProperties": false,
+                "required": [
+                  "label",
+                  "points",
+                  "isGap",
+                  "notApplicable",
+                  "allowOtherText",
+                  "recommendProductId",
+                  "recommendBadge",
+                  "recommendRank"
+                ]
+              }
+            },
+            "ratingMin": {
+              "type": "number",
+              "description": "Rating questions only (usually 1); 0 otherwise"
+            },
+            "ratingMax": {
+              "type": "number",
+              "description": "Rating questions only (usually 5); 0 otherwise"
+            },
+            "ratingMinLabel": {
+              "type": "string",
+              "description": 'Rating questions only; "" otherwise'
+            },
+            "ratingMaxLabel": {
+              "type": "string",
+              "description": 'Rating questions only; "" otherwise'
+            },
+            "showIfQuestionKey": {
+              "type": "string",
+              "description": 'Key of an EARLIER question that controls whether this one is shown; "" to always show'
+            },
+            "showIfOptionLabels": {
+              "type": "array",
+              "description": "Exact labels of the controlling question's answers that make this question appear",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "key",
+            "sectionKey",
+            "type",
+            "role",
+            "text",
+            "shortLabel",
+            "helpText",
+            "required",
+            "options",
+            "ratingMin",
+            "ratingMax",
+            "ratingMinLabel",
+            "ratingMaxLabel",
+            "showIfQuestionKey",
+            "showIfOptionLabels"
+          ]
+        }
+      }
+    },
+    "additionalProperties": false,
+    "required": [
+      "questions"
+    ],
+    "description": '{$schema: "https://json-schema.org/draft/2020-12/schema"}'
+  },
   "RewriteResult": {
     "type": "object",
     "properties": {
@@ -887,6 +1458,8 @@ var DEFAULT_ORIGINS = ["https://qualifacts-assess.netlify.app", "http://localhos
 var MODE_CONFIG = {
   generate: { schema: "AiDraft", effort: "high", maxTokens: 32e3, constrained: false },
   import: { schema: "AiDraft", effort: "high", maxTokens: 32e3, constrained: false },
+  generate_plan: { schema: "AiPlan", effort: "medium", maxTokens: 12e3, constrained: false },
+  generate_section: { schema: "AiSectionQuestions", effort: "medium", maxTokens: 12e3, constrained: false },
   extract_knowledge: { schema: "KnowledgeExtract", effort: "medium", maxTokens: 16e3, constrained: true },
   rewrite: { schema: "RewriteResult", effort: "low", maxTokens: 4e3, constrained: true },
   options: { schema: "OptionsResult", effort: "low", maxTokens: 4e3, constrained: true },
@@ -945,12 +1518,6 @@ Deno.serve(async (req) => {
   const { data: cfgRows } = await db.from("q-quiz-config").select("key,value").in("key", ["ai_enabled", "ai_daily_limit_per_user", "ai_effort_generate"]);
   const cfg = new Map((cfgRows ?? []).map((r) => [r.key, r.value]));
   if (cfg.get("ai_enabled") === false) return json({ error: "AI tools are turned off by an admin." }, 403, cors);
-  const dailyLimit = Number(cfg.get("ai_daily_limit_per_user") ?? 25);
-  const since = new Date(Date.now() - 24 * 3600 * 1e3).toISOString();
-  const { count } = await db.from("q-quiz-ai-requests").select("id", { count: "exact", head: true }).eq("user_id", uid).gte("created_at", since);
-  if ((count ?? 0) >= dailyLimit) {
-    return json({ error: `You've reached today's limit of ${dailyLimit} AI requests. It resets on a rolling 24-hour basis.` }, 429, cors);
-  }
   let body;
   try {
     body = await req.json();
@@ -962,8 +1529,16 @@ Deno.serve(async (req) => {
   if (!conf) return json({ error: `Unknown mode "${String(mode)}".` }, 400, cors);
   let effort = conf.effort;
   const effortOverride = cfg.get("ai_effort_generate");
-  if ((mode === "generate" || mode === "import") && typeof effortOverride === "string" && ["low", "medium", "high", "xhigh", "max"].includes(effortOverride)) {
+  if (["generate", "import", "generate_plan", "generate_section"].includes(mode) && typeof effortOverride === "string" && ["low", "medium", "high", "xhigh", "max"].includes(effortOverride)) {
     effort = effortOverride;
+  }
+  if (mode !== "generate_section") {
+    const dailyLimit = Number(cfg.get("ai_daily_limit_per_user") ?? 25);
+    const since = new Date(Date.now() - 24 * 3600 * 1e3).toISOString();
+    const { count } = await db.from("q-quiz-ai-requests").select("id", { count: "exact", head: true }).eq("user_id", uid).gte("created_at", since).neq("mode", "generate_section");
+    if ((count ?? 0) >= dailyLimit) {
+      return json({ error: `You've reached today's limit of ${dailyLimit} AI requests. It resets on a rolling 24-hour basis.` }, 429, cors);
+    }
   }
   let content;
   const meta = {};
@@ -985,6 +1560,12 @@ Deno.serve(async (req) => {
       let errorMsg = null;
       let usage = { input: 0, output: 0, cacheRead: 0 };
       let model = MODEL;
+      const abort = new AbortController();
+      let timedOut = false;
+      const deadline = setTimeout(() => {
+        timedOut = true;
+        abort.abort();
+      }, AI_LIMITS.stepTimeoutMs);
       try {
         const s = client.beta.messages.stream({
           model: MODEL,
@@ -993,12 +1574,14 @@ Deno.serve(async (req) => {
           output_config: conf.constrained ? { effort, format: { type: "json_schema", schema: SCHEMAS[conf.schema] } } : { effort },
           betas: ["server-side-fallback-2026-07-01"],
           fallbacks: "default",
-          system: conf.constrained ? [{ type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }] : [
-            { type: "text", text: SYSTEM_PROMPT },
-            { type: "text", text: schemaInstruction(conf.schema), cache_control: { type: "ephemeral" } }
-          ],
-          messages: [{ role: "user", content }]
-        });
+          // System prompt and context are identical across the plan and section calls, so they
+          // are cached once and reused; the per-call schema instruction comes last (in content).
+          system: [{ type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
+          messages: [{
+            role: "user",
+            content: conf.constrained ? content : [...content, { type: "text", text: schemaInstruction(conf.schema) }]
+          }]
+        }, { signal: abort.signal });
         let text = "";
         let lastPhase = "";
         let lastSent = 0;
@@ -1009,7 +1592,7 @@ Deno.serve(async (req) => {
             send({ type: "progress", phase: lastPhase, chars: text.length });
           } else if (ev.type === "content_block_delta" && ev.delta.type === "text_delta") {
             text += ev.delta.text;
-            const phase = conf.schema === "AiDraft" ? GENERATE_PHASES.find(([k]) => text.includes(k))?.[1] ?? "Drafting" : "Writing";
+            const phase = conf.schema === "AiDraft" || conf.schema === "AiPlan" ? GENERATE_PHASES.find(([k]) => text.includes(k))?.[1] ?? "Drafting" : conf.schema === "AiSectionQuestions" ? "Writing questions" : "Writing";
             if (phase !== lastPhase || Date.now() - lastSent > 700) {
               lastPhase = phase;
               lastSent = Date.now();
@@ -1036,9 +1619,10 @@ Deno.serve(async (req) => {
         send({ type: "result", data, requestId: msg.id ?? null, usage });
       } catch (e) {
         status = "error";
-        errorMsg = friendlyError(e);
-        send({ type: "error", message: errorMsg });
+        errorMsg = timedOut ? "This step took too long for the server time limit. Try fewer questions or less context, then try again." : friendlyError(e);
+        send({ type: "error", message: errorMsg, ...timedOut ? { code: "timeout" } : {} });
       } finally {
+        clearTimeout(deadline);
         clearInterval(ping);
         await db.from("q-quiz-ai-requests").insert({
           user_id: uid,
@@ -1067,6 +1651,11 @@ function friendlyError(e) {
   if (e instanceof Anthropic.APIError) return `AI service error (${e.status ?? "network"}). Please try again.`;
   return e?.message || "Something went wrong.";
 }
+function cachedContext(blocks) {
+  if (!blocks.length) return blocks;
+  const last = blocks[blocks.length - 1];
+  return [...blocks.slice(0, -1), { ...last, cache_control: { type: "ephemeral" } }];
+}
 async function buildContent(db, body, meta) {
   switch (body.mode) {
     case "generate":
@@ -1077,7 +1666,31 @@ async function buildContent(db, body, meta) {
       meta.files = ctx.pdfs.length + ctx.attachments.length;
       if (body.mode === "import" && ctx.pdfs.length + ctx.attachments.length === 0) throw new Error("Upload the questionnaire you want to import.");
       const task = body.mode === "import" ? importTask(body.brief) : generateTask(body.brief, body.revisionNotes ? { notes: body.revisionNotes, previous: body.previousDraft } : void 0);
-      return [...contextBlocks(ctx), { type: "text", text: task }];
+      return [...cachedContext(contextBlocks(ctx)), { type: "text", text: task }];
+    }
+    case "generate_plan":
+    case "generate_section": {
+      const ctx = await loadContext(db, body.knowledgeIds ?? [], body.productIds ?? [], body.files ?? [], body.attachments ?? [], body.notes ?? "");
+      meta.knowledge = ctx.knowledge.length;
+      meta.products = ctx.products.length;
+      meta.files = ctx.pdfs.length + ctx.attachments.length;
+      if (body.importMode && ctx.pdfs.length + ctx.attachments.length === 0) throw new Error("Upload the questionnaire you want to import.");
+      let task;
+      if (body.mode === "generate_plan") {
+        task = planTask(body.brief, {
+          importMode: body.importMode,
+          revision: body.revisionNotes ? { notes: body.revisionNotes, previous: body.previousDraft } : void 0
+        });
+      } else {
+        if (!body.plan || typeof body.sectionKey !== "string") throw new Error("Missing plan or section.");
+        if (JSON.stringify(body.plan).length > 1e5) throw new Error("The plan is too large.");
+        meta.section = body.sectionKey;
+        task = sectionTask(body.brief, body.plan, body.sectionKey, {
+          importMode: body.importMode,
+          revision: body.revisionNotes ? { notes: body.revisionNotes, previous: body.previousQuestions ?? [] } : void 0
+        });
+      }
+      return [...cachedContext(contextBlocks(ctx)), { type: "text", text: task }];
     }
     case "extract_knowledge": {
       const ctx = await loadContext(db, [], [], body.files ?? [], body.attachments ?? [], "");

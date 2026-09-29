@@ -487,6 +487,511 @@ export const SCHEMAS = {
     ],
     "description": "{$schema: \"https://json-schema.org/draft/2020-12/schema\"}"
   },
+  "AiPlan": {
+    "$defs": {
+      "__schema0": {
+        "type": "object",
+        "properties": {
+          "min": {
+            "type": "number"
+          },
+          "max": {
+            "type": "number"
+          },
+          "label": {
+            "type": "string"
+          },
+          "color": {
+            "type": "string",
+            "description": "{enum: [\"teal\",\"amber\",\"magenta\",\"darkMagenta\",\"navy\",\"grey\"]}"
+          },
+          "summary": {
+            "type": "string",
+            "description": "One sentence under the tier name"
+          },
+          "body": {
+            "type": "string",
+            "description": "Guidance paragraph (Markdown; may use {{weakestSection}}, {{score}}); \"\" for none"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "min",
+          "max",
+          "label",
+          "color",
+          "summary",
+          "body"
+        ]
+      }
+    },
+    "type": "object",
+    "properties": {
+      "title": {
+        "type": "string"
+      },
+      "description": {
+        "type": "string"
+      },
+      "productLine": {
+        "type": "string",
+        "description": "\"\" if not specific to one product line"
+      },
+      "intro": {
+        "type": "object",
+        "properties": {
+          "eyebrow": {
+            "type": "string"
+          },
+          "headline": {
+            "type": "string"
+          },
+          "subheadline": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "bullets": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "startLabel": {
+            "type": "string"
+          },
+          "estimatedMinutes": {
+            "type": "number"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "eyebrow",
+          "headline",
+          "subheadline",
+          "body",
+          "bullets",
+          "startLabel",
+          "estimatedMinutes"
+        ]
+      },
+      "scoringMethod": {
+        "type": "string",
+        "description": "{enum: [\"points\",\"gaps\",\"none\"]}"
+      },
+      "tierBasis": {
+        "type": "string",
+        "description": "{enum: [\"percent\",\"points\"]}"
+      },
+      "display": {
+        "type": "string",
+        "description": "{enum: [\"percent\",\"points\"]}"
+      },
+      "tiers": {
+        "type": "array",
+        "items": {
+          "$ref": "#/$defs/__schema0"
+        }
+      },
+      "sectionTiers": {
+        "type": "array",
+        "items": {
+          "$ref": "#/$defs/__schema0"
+        }
+      },
+      "insights": {
+        "type": "array",
+        "description": "Ordered guidance rules; the first match is shown. End with an \"always\" fallback",
+        "items": {
+          "type": "object",
+          "properties": {
+            "when": {
+              "type": "string",
+              "description": "{enum: [\"always\",\"sectionsBelowCount\",\"weakestInclude\",\"overallBetween\"]}"
+            },
+            "pct": {
+              "type": "number",
+              "description": "sectionsBelowCount: the percent threshold; 0 otherwise"
+            },
+            "atLeast": {
+              "type": "number",
+              "description": "sectionsBelowCount: how many sections; 0 otherwise"
+            },
+            "sectionKeys": {
+              "type": "array",
+              "description": "weakestInclude: section keys; empty otherwise",
+              "items": {
+                "type": "string"
+              }
+            },
+            "topN": {
+              "type": "number",
+              "description": "weakestInclude: among the N weakest sections; 0 otherwise"
+            },
+            "min": {
+              "type": "number",
+              "description": "overallBetween: lower bound; 0 otherwise"
+            },
+            "max": {
+              "type": "number",
+              "description": "overallBetween: upper bound; 0 otherwise"
+            },
+            "body": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "when",
+            "pct",
+            "atLeast",
+            "sectionKeys",
+            "topN",
+            "min",
+            "max",
+            "body"
+          ]
+        }
+      },
+      "recommendations": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "heading": {
+            "type": "string"
+          },
+          "intro": {
+            "type": "string",
+            "description": "\"\" for none"
+          },
+          "emptyMessage": {
+            "type": "string",
+            "description": "Shown when nothing is recommended; \"\" for the default"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "enabled",
+          "heading",
+          "intro",
+          "emptyMessage"
+        ]
+      },
+      "leadCapture": {
+        "type": "object",
+        "properties": {
+          "position": {
+            "type": "string",
+            "description": "{enum: [\"beforeResults\",\"beforeQuestions\",\"off\"]}"
+          },
+          "heading": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string",
+            "description": "\"\" for none"
+          },
+          "fieldKeys": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "{enum: [\"first_name\",\"last_name\",\"email\",\"organization\",\"job_title\",\"phone\",\"state\"]}"
+            }
+          },
+          "requiredKeys": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "{enum: [\"first_name\",\"last_name\",\"email\",\"organization\",\"job_title\",\"phone\",\"state\"]}"
+            }
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "position",
+          "heading",
+          "body",
+          "fieldKeys",
+          "requiredKeys"
+        ]
+      },
+      "results": {
+        "type": "object",
+        "properties": {
+          "eyebrow": {
+            "type": "string"
+          },
+          "headline": {
+            "type": "string",
+            "description": "Overrides tier summaries when set; usually \"\""
+          },
+          "body": {
+            "type": "string",
+            "description": "Extra results-page content; \"\" for none"
+          },
+          "showSectionBreakdown": {
+            "type": "boolean"
+          },
+          "showGapList": {
+            "type": "boolean"
+          },
+          "showInsights": {
+            "type": "boolean"
+          },
+          "showRecommendations": {
+            "type": "boolean"
+          },
+          "primaryCtaLabel": {
+            "type": "string",
+            "description": "\"\" for no button"
+          },
+          "primaryCtaUrl": {
+            "type": "string",
+            "description": "Full https:// URL, or \"\""
+          },
+          "footerNote": {
+            "type": "string",
+            "description": "\"\" for none"
+          },
+          "thankYouHeadline": {
+            "type": "string",
+            "description": "Surveys only; \"\" otherwise"
+          },
+          "thankYouBody": {
+            "type": "string",
+            "description": "Surveys only; \"\" otherwise"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "eyebrow",
+          "headline",
+          "body",
+          "showSectionBreakdown",
+          "showGapList",
+          "showInsights",
+          "showRecommendations",
+          "primaryCtaLabel",
+          "primaryCtaUrl",
+          "footerNote",
+          "thankYouHeadline",
+          "thankYouBody"
+        ]
+      },
+      "designNotes": {
+        "type": "string",
+        "description": "2–4 sentences for the creator explaining the structure and scoring choices"
+      },
+      "sections": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "key": {
+              "type": "string",
+              "description": "Short unique key, e.g. \"s1\""
+            },
+            "name": {
+              "type": "string"
+            },
+            "productIds": {
+              "type": "array",
+              "description": "IDs of provided products that solve this area (shown as \"Solved by\")",
+              "items": {
+                "type": "string"
+              }
+            },
+            "showInResults": {
+              "type": "boolean"
+            },
+            "questionCount": {
+              "type": "number",
+              "description": "How many questions this section should have"
+            },
+            "questionBrief": {
+              "type": "string",
+              "description": "What the questions in this section should cover (in import mode: which source questions belong here, quoted or numbered)"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "key",
+            "name",
+            "productIds",
+            "showInResults",
+            "questionCount",
+            "questionBrief"
+          ]
+        }
+      }
+    },
+    "additionalProperties": false,
+    "required": [
+      "title",
+      "description",
+      "productLine",
+      "intro",
+      "scoringMethod",
+      "tierBasis",
+      "display",
+      "tiers",
+      "sectionTiers",
+      "insights",
+      "recommendations",
+      "leadCapture",
+      "results",
+      "designNotes",
+      "sections"
+    ],
+    "description": "{$schema: \"https://json-schema.org/draft/2020-12/schema\"}"
+  },
+  "AiSectionQuestions": {
+    "type": "object",
+    "properties": {
+      "questions": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "key": {
+              "type": "string",
+              "description": "Short unique key, e.g. \"q1\""
+            },
+            "sectionKey": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "description": "{enum: [\"single\",\"multi\",\"dropdown\",\"yesno\",\"rating\",\"text\",\"longtext\"]}"
+            },
+            "role": {
+              "type": "string",
+              "description": "{enum: [\"scored\",\"gate\",\"segment\",\"info\"]}"
+            },
+            "text": {
+              "type": "string"
+            },
+            "shortLabel": {
+              "type": "string",
+              "description": "2–5 word label used in reports and results, e.g. \"Denial tracking\""
+            },
+            "helpText": {
+              "type": "string",
+              "description": "Optional help text; \"\" for none"
+            },
+            "required": {
+              "type": "boolean"
+            },
+            "options": {
+              "type": "array",
+              "description": "Answer choices for single/multi/dropdown/yesno questions; empty for others",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "label": {
+                    "type": "string",
+                    "description": "Answer text shown to the respondent"
+                  },
+                  "points": {
+                    "type": "number",
+                    "description": "Points for this answer when scoringMethod is \"points\"; 0 otherwise"
+                  },
+                  "isGap": {
+                    "type": "boolean",
+                    "description": "True when this answer reveals an operational gap"
+                  },
+                  "notApplicable": {
+                    "type": "boolean",
+                    "description": "On a gate question: marks the section not applicable. On a scored question: excludes it from scoring"
+                  },
+                  "allowOtherText": {
+                    "type": "boolean",
+                    "description": "True for an \"Other (please specify)\" answer"
+                  },
+                  "recommendProductId": {
+                    "type": "string",
+                    "description": "ID of a provided product that solves the need this answer reveals, or \"\" for none"
+                  },
+                  "recommendBadge": {
+                    "type": "string",
+                    "description": "Short badge for the recommendation card, e.g. \"Top Priority\" or \"Opportunity\"; \"\" if no recommendation"
+                  },
+                  "recommendRank": {
+                    "type": "number",
+                    "description": "Lower ranks sort first (0 for the weakest answer, 5 for a partial answer)"
+                  }
+                },
+                "additionalProperties": false,
+                "required": [
+                  "label",
+                  "points",
+                  "isGap",
+                  "notApplicable",
+                  "allowOtherText",
+                  "recommendProductId",
+                  "recommendBadge",
+                  "recommendRank"
+                ]
+              }
+            },
+            "ratingMin": {
+              "type": "number",
+              "description": "Rating questions only (usually 1); 0 otherwise"
+            },
+            "ratingMax": {
+              "type": "number",
+              "description": "Rating questions only (usually 5); 0 otherwise"
+            },
+            "ratingMinLabel": {
+              "type": "string",
+              "description": "Rating questions only; \"\" otherwise"
+            },
+            "ratingMaxLabel": {
+              "type": "string",
+              "description": "Rating questions only; \"\" otherwise"
+            },
+            "showIfQuestionKey": {
+              "type": "string",
+              "description": "Key of an EARLIER question that controls whether this one is shown; \"\" to always show"
+            },
+            "showIfOptionLabels": {
+              "type": "array",
+              "description": "Exact labels of the controlling question's answers that make this question appear",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "key",
+            "sectionKey",
+            "type",
+            "role",
+            "text",
+            "shortLabel",
+            "helpText",
+            "required",
+            "options",
+            "ratingMin",
+            "ratingMax",
+            "ratingMinLabel",
+            "ratingMaxLabel",
+            "showIfQuestionKey",
+            "showIfOptionLabels"
+          ]
+        }
+      }
+    },
+    "additionalProperties": false,
+    "required": [
+      "questions"
+    ],
+    "description": "{$schema: \"https://json-schema.org/draft/2020-12/schema\"}"
+  },
   "RewriteResult": {
     "type": "object",
     "properties": {

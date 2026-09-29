@@ -19,8 +19,10 @@ import {
   generateTask,
   importTask,
   optionsTask,
+  planTask,
   reviewTask,
   rewriteTask,
+  sectionTask,
   tierCopyTask,
   type KnowledgeDoc,
   type PdfForPrompt,
@@ -37,10 +39,14 @@ const DEFAULT_ORIGINS = ['https://qualifacts-assess.netlify.app', 'http://localh
 type Effort = 'low' | 'medium' | 'high' | 'xhigh' | 'max';
 
 // constrained: false → the schema is too large for structured outputs ("compiled grammar
-// is too large"), so it goes in the system prompt instead and Studio validates with zod.
+// is too large"), so it goes in the prompt instead and Studio validates with zod.
+// generate/import are the legacy single-shot modes; Studio now uses generate_plan +
+// generate_section so each call finishes inside Supabase Free's 150 s limit.
 const MODE_CONFIG: Record<AiMode, { schema: keyof typeof SCHEMAS; effort: Effort; maxTokens: number; constrained: boolean }> = {
   generate: { schema: 'AiDraft', effort: 'high', maxTokens: 32000, constrained: false },
   import: { schema: 'AiDraft', effort: 'high', maxTokens: 32000, constrained: false },
+  generate_plan: { schema: 'AiPlan', effort: 'medium', maxTokens: 12000, constrained: false },
+  generate_section: { schema: 'AiSectionQuestions', effort: 'medium', maxTokens: 12000, constrained: false },
   extract_knowledge: { schema: 'KnowledgeExtract', effort: 'medium', maxTokens: 16000, constrained: true },
   rewrite: { schema: 'RewriteResult', effort: 'low', maxTokens: 4000, constrained: true },
   options: { schema: 'OptionsResult', effort: 'low', maxTokens: 4000, constrained: true },
@@ -114,13 +120,6 @@ Deno.serve(async (req) => {
   const { data: cfgRows } = await db.from('q-quiz-config').select('key,value').in('key', ['ai_enabled', 'ai_daily_limit_per_user', 'ai_effort_generate']);
   const cfg = new Map((cfgRows ?? []).map((r: { key: string; value: unknown }) => [r.key, r.value]));
   if (cfg.get('ai_enabled') === false) return json({ error: 'AI tools are turned off by an admin.' }, 403, cors);
-  const dailyLimit = Number(cfg.get('ai_daily_limit_per_user') ?? 25);
-  const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
-  const { count } = await db.from('q-quiz-ai-requests').select('id', { count: 'exact', head: true }).eq('user_id', uid).gte('created_at', since);
-  if ((count ?? 0) >= dailyLimit) {
-    return json({ error: `You've reached today's limit of ${dailyLimit} AI requests. It resets on a rolling 24-hour basis.` }, 429, cors);
-  }
-
   // ── Parse request ──
   let body: AiRequest;
   try {
@@ -133,8 +132,19 @@ Deno.serve(async (req) => {
   if (!conf) return json({ error: `Unknown mode "${String(mode)}".` }, 400, cors);
   let effort = conf.effort;
   const effortOverride = cfg.get('ai_effort_generate');
-  if ((mode === 'generate' || mode === 'import') && typeof effortOverride === 'string' && ['low', 'medium', 'high', 'xhigh', 'max'].includes(effortOverride)) {
+  if (['generate', 'import', 'generate_plan', 'generate_section'].includes(mode) && typeof effortOverride === 'string' && ['low', 'medium', 'high', 'xhigh', 'max'].includes(effortOverride)) {
     effort = effortOverride as Effort;
+  }
+
+  // ── Daily limit: a staged generation counts once (its plan); section calls are free ──
+  if (mode !== 'generate_section') {
+    const dailyLimit = Number(cfg.get('ai_daily_limit_per_user') ?? 25);
+    const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+    const { count } = await db.from('q-quiz-ai-requests').select('id', { count: 'exact', head: true })
+      .eq('user_id', uid).gte('created_at', since).neq('mode', 'generate_section');
+    if ((count ?? 0) >= dailyLimit) {
+      return json({ error: `You've reached today's limit of ${dailyLimit} AI requests. It resets on a rolling 24-hour basis.` }, 429, cors);
+    }
   }
 
   // ── Load context (knowledge, products, files) ──
@@ -159,6 +169,10 @@ Deno.serve(async (req) => {
       let errorMsg: string | null = null;
       let usage = { input: 0, output: 0, cacheRead: 0 };
       let model = MODEL;
+      // Stop cleanly before Supabase kills the function (150 s on Free) so the user gets a real error
+      const abort = new AbortController();
+      let timedOut = false;
+      const deadline = setTimeout(() => { timedOut = true; abort.abort(); }, AI_LIMITS.stepTimeoutMs);
       try {
         const s = client.beta.messages.stream({
           model: MODEL,
@@ -169,14 +183,14 @@ Deno.serve(async (req) => {
             : { effort },
           betas: ['server-side-fallback-2026-07-01'],
           fallbacks: 'default',
-          system: conf.constrained
-            ? [{ type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } }]
-            : [
-                { type: 'text', text: SYSTEM_PROMPT },
-                { type: 'text', text: schemaInstruction(conf.schema), cache_control: { type: 'ephemeral' } },
-              ],
-          messages: [{ role: 'user', content }],
-        });
+          // System prompt and context are identical across the plan and section calls, so they
+          // are cached once and reused; the per-call schema instruction comes last (in content).
+          system: [{ type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } }],
+          messages: [{
+            role: 'user',
+            content: conf.constrained ? content : [...content, { type: 'text', text: schemaInstruction(conf.schema) }],
+          }],
+        }, { signal: abort.signal });
 
         let text = '';
         let lastPhase = '';
@@ -188,9 +202,9 @@ Deno.serve(async (req) => {
             send({ type: 'progress', phase: lastPhase, chars: text.length });
           } else if (ev.type === 'content_block_delta' && ev.delta.type === 'text_delta') {
             text += ev.delta.text;
-            const phase = conf.schema === 'AiDraft'
+            const phase = conf.schema === 'AiDraft' || conf.schema === 'AiPlan'
               ? GENERATE_PHASES.find(([k]) => text.includes(k))?.[1] ?? 'Drafting'
-              : 'Writing';
+              : conf.schema === 'AiSectionQuestions' ? 'Writing questions' : 'Writing';
             if (phase !== lastPhase || Date.now() - lastSent > 700) {
               lastPhase = phase;
               lastSent = Date.now();
@@ -217,9 +231,12 @@ Deno.serve(async (req) => {
         send({ type: 'result', data, requestId: msg.id ?? null, usage });
       } catch (e) {
         status = 'error';
-        errorMsg = friendlyError(e);
-        send({ type: 'error', message: errorMsg });
+        errorMsg = timedOut
+          ? 'This step took too long for the server time limit. Try fewer questions or less context, then try again.'
+          : friendlyError(e);
+        send({ type: 'error', message: errorMsg, ...(timedOut ? { code: 'timeout' } : {}) });
       } finally {
+        clearTimeout(deadline);
         clearInterval(ping);
         await db.from('q-quiz-ai-requests').insert({
           user_id: uid,
@@ -253,6 +270,13 @@ function friendlyError(e: unknown): string {
 
 // ── Context assembly ─────────────────────────────────────────────────────────
 
+/** Cache breakpoint on the last reference block: the plan call writes it, section calls read it. */
+function cachedContext(blocks: Anthropic.Beta.BetaContentBlockParam[]): Anthropic.Beta.BetaContentBlockParam[] {
+  if (!blocks.length) return blocks;
+  const last = blocks[blocks.length - 1];
+  return [...blocks.slice(0, -1), { ...last, cache_control: { type: 'ephemeral' } } as Anthropic.Beta.BetaContentBlockParam];
+}
+
 // deno-lint-ignore no-explicit-any
 async function buildContent(db: any, body: AiRequest, meta: Record<string, unknown>): Promise<Anthropic.Beta.BetaContentBlockParam[]> {
   switch (body.mode) {
@@ -266,7 +290,31 @@ async function buildContent(db: any, body: AiRequest, meta: Record<string, unkno
       const task = body.mode === 'import'
         ? importTask(body.brief)
         : generateTask(body.brief, body.revisionNotes ? { notes: body.revisionNotes, previous: body.previousDraft } : undefined);
-      return [...contextBlocks(ctx), { type: 'text', text: task }];
+      return [...cachedContext(contextBlocks(ctx)), { type: 'text', text: task }];
+    }
+    case 'generate_plan':
+    case 'generate_section': {
+      const ctx = await loadContext(db, body.knowledgeIds ?? [], body.productIds ?? [], body.files ?? [], body.attachments ?? [], body.notes ?? '');
+      meta.knowledge = ctx.knowledge.length;
+      meta.products = ctx.products.length;
+      meta.files = ctx.pdfs.length + ctx.attachments.length;
+      if (body.importMode && ctx.pdfs.length + ctx.attachments.length === 0) throw new Error('Upload the questionnaire you want to import.');
+      let task: string;
+      if (body.mode === 'generate_plan') {
+        task = planTask(body.brief, {
+          importMode: body.importMode,
+          revision: body.revisionNotes ? { notes: body.revisionNotes, previous: body.previousDraft } : undefined,
+        });
+      } else {
+        if (!body.plan || typeof body.sectionKey !== 'string') throw new Error('Missing plan or section.');
+        if (JSON.stringify(body.plan).length > 100_000) throw new Error('The plan is too large.');
+        meta.section = body.sectionKey;
+        task = sectionTask(body.brief, body.plan, body.sectionKey, {
+          importMode: body.importMode,
+          revision: body.revisionNotes ? { notes: body.revisionNotes, previous: body.previousQuestions ?? [] } : undefined,
+        });
+      }
+      return [...cachedContext(contextBlocks(ctx)), { type: 'text', text: task }];
     }
     case 'extract_knowledge': {
       const ctx = await loadContext(db, [], [], body.files ?? [], body.attachments ?? [], '');

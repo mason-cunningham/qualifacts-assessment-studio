@@ -1,6 +1,8 @@
 // Request/response contract between Studio and the ai-assist Edge Function.
 
-export type AiMode = 'generate' | 'import' | 'extract_knowledge' | 'rewrite' | 'options' | 'tier_copy' | 'review';
+export type AiMode =
+  | 'generate' | 'import' | 'generate_plan' | 'generate_section'
+  | 'extract_knowledge' | 'rewrite' | 'options' | 'tier_copy' | 'review';
 
 export interface GenerateBrief {
   title: string;
@@ -49,6 +51,29 @@ export interface ImportRequest extends ContextPayload {
   brief: GenerateBrief;
 }
 
+/** Stage 1 of staged generation: structure + results copy, no questions. */
+export interface GeneratePlanRequest extends ContextPayload {
+  mode: 'generate_plan';
+  brief: GenerateBrief;
+  importMode?: boolean;
+  revisionNotes?: string;
+  /** Previous full draft (AiDraft) when revising */
+  previousDraft?: unknown;
+}
+
+/** Stage 2: the questions for ONE section of the plan. */
+export interface GenerateSectionRequest extends ContextPayload {
+  mode: 'generate_section';
+  brief: GenerateBrief;
+  importMode?: boolean;
+  /** The AiPlan returned by stage 1 */
+  plan: unknown;
+  sectionKey: string;
+  revisionNotes?: string;
+  /** This section's questions from the previous draft when revising */
+  previousQuestions?: unknown[];
+}
+
 export interface ExtractKnowledgeRequest {
   mode: 'extract_knowledge';
   files: StoredFile[];
@@ -92,6 +117,8 @@ export interface ReviewRequest {
 export type AiRequest =
   | GenerateRequest
   | ImportRequest
+  | GeneratePlanRequest
+  | GenerateSectionRequest
   | ExtractKnowledgeRequest
   | RewriteRequest
   | OptionsRequest
@@ -110,4 +137,8 @@ export const AI_LIMITS = {
   /** Max PDF size in bytes */
   maxFileBytes: 20 * 1024 * 1024,
   maxFiles: 5,
+  /** Supabase Free kills Edge Functions at 150 s; each call stops itself before that */
+  stepTimeoutMs: 135_000,
+  /** Section calls run this many at a time */
+  sectionConcurrency: 3,
 } as const;
