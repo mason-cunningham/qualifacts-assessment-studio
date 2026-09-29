@@ -1,8 +1,9 @@
 import * as XLSX from 'xlsx';
 import type { StoredFile, TextAttachment } from '@qq/ai';
 import { supabase } from './supabase';
+import { pptxPartsToText } from './pptx';
 
-export const ACCEPTED_CONTEXT_FILES = '.pdf,.docx,.xlsx,.xls,.csv,.txt,.md';
+export const ACCEPTED_CONTEXT_FILES = '.pdf,.pptx,.docx,.xlsx,.xls,.csv,.txt,.md';
 const MAX_BYTES = 20 * 1024 * 1024;
 
 export type PreparedFile =
@@ -12,6 +13,7 @@ export type PreparedFile =
 /**
  * Get a file ready for AI:
  *  - PDF       → uploaded to the private q-quiz-imports bucket (Claude reads PDFs natively)
+ *  - PPTX      → slide text + speaker notes via JSZip (loaded on demand)
  *  - DOCX      → text via mammoth (loaded on demand)
  *  - XLSX/CSV  → text via SheetJS (one CSV block per sheet)
  *  - TXT/MD    → read as text
@@ -31,7 +33,16 @@ export async function prepareFile(file: File): Promise<PreparedFile> {
   }
 
   let text: string;
-  if (lower.endsWith('.docx')) {
+  if (lower.endsWith('.pptx')) {
+    const JSZip = (await import('jszip')).default;
+    const zip = await JSZip.loadAsync(await file.arrayBuffer());
+    const parts = await Promise.all(
+      Object.keys(zip.files)
+        .filter((p) => /^ppt\/(slides\/slide|notesSlides\/notesSlide)\d+\.xml$/.test(p))
+        .map(async (path) => ({ path, xml: await zip.files[path].async('string') })),
+    );
+    text = pptxPartsToText(parts);
+  } else if (lower.endsWith('.docx')) {
     const mammoth = (await import('mammoth')).default;
     const res = await mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() });
     text = res.value;
@@ -41,7 +52,7 @@ export async function prepareFile(file: File): Promise<PreparedFile> {
   } else if (lower.endsWith('.csv') || lower.endsWith('.txt') || lower.endsWith('.md')) {
     text = await file.text();
   } else {
-    throw new Error(`${name}: unsupported file type. Use PDF, Word (.docx), Excel, CSV, TXT or Markdown.`);
+    throw new Error(`${name}: unsupported file type. Use PDF, PowerPoint (.pptx), Word (.docx), Excel, CSV, TXT or Markdown.`);
   }
   text = text.replace(/\r\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
   if (!text) throw new Error(`${name} doesn't contain any readable text.`);

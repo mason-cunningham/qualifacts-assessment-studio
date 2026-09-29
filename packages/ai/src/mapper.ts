@@ -88,8 +88,11 @@ export function draftToDefinition(draft: AiDraft, products: ProductSnapshot[]): 
           optMap.set(o.label.trim().toLowerCase(), oid);
           const points = method === 'points' && role === 'scored' && !o.notApplicable ? o.points : undefined;
           const pid = o.recommendProductId.trim();
+          // Keep only feature ids that belong to the recommended product
+          const ownFeatures = new Set((allowed.get(pid)?.features ?? []).map((f) => f.id));
+          const featureIds = [...new Set((o.recommendFeatureIds ?? []).map((f) => f.trim()))].filter((f) => ownFeatures.has(f));
           const rec = pid && allowed.has(pid)
-            ? { productIds: [pid], badge: text(o.recommendBadge), rank: o.recommendRank }
+            ? { productIds: [pid], badge: text(o.recommendBadge), rank: o.recommendRank, ...(featureIds.length ? { featureIds } : {}) }
             : undefined;
           if (pid && !allowed.has(pid)) repairs.push(`Dropped a recommendation to an unknown product on Q${idx + 1}.`);
           return {
@@ -286,7 +289,11 @@ export function summarizeDefinition(def: AssessmentDefinition): string {
         o.points !== undefined ? `${o.points} pts` : '',
         o.isGap ? 'gap' : '',
         o.notApplicable ? 'N/A' : '',
-        o.recommend ? `recommends ${o.recommend.productIds.map((id) => def.products.find((p) => p.id === id)?.name ?? id).join(', ')}` : '',
+        o.recommend ? `recommends ${o.recommend.productIds.map((id) => {
+          const p = def.products.find((x) => x.id === id);
+          const feats = (o.recommend?.featureIds ?? []).map((fid) => p?.features?.find((f) => f.id === fid)?.name).filter(Boolean);
+          return `${p?.name ?? id}${feats.length ? ` [${feats.join(', ')}]` : ''}`;
+        }).join(', ')}` : '',
       ].filter(Boolean);
       lines.push(`   - ${o.label}${flags.length ? ` (${flags.join(', ')})` : ''}`);
     }

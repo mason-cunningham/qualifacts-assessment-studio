@@ -1,4 +1,4 @@
-import type { AssessmentDefinition, ProductSnapshot } from '@qq/schema';
+import { cleanFeatures, type AssessmentDefinition, type ProductSnapshot } from '@qq/schema';
 import { supabase, T } from './supabase';
 import type { ProductRow } from './types';
 
@@ -15,6 +15,7 @@ export function productFromRow(r: ProductRow): ProductSnapshot {
     logoUrl: r.logo_url ?? undefined,
     ctaLabel: r.cta_label ?? undefined,
     ctaUrl: r.cta_url ?? undefined,
+    features: cleanFeatures(r.features),
   };
 }
 
@@ -30,6 +31,7 @@ export function productToRow(p: ProductSnapshot): Partial<ProductRow> {
     logo_url: p.logoUrl ?? null,
     cta_label: p.ctaLabel ?? null,
     cta_url: p.ctaUrl ?? null,
+    features: cleanFeatures(p.features),
   };
 }
 
@@ -48,7 +50,10 @@ export async function resolveForPublish(def: AssessmentDefinition): Promise<Asse
       return r ? { ...productFromRow(r), priority: p.priority } : p;
     });
   }
-  out.products.forEach((p) => { p.benefits = p.benefits.filter((b) => b.trim()); });
+  out.products.forEach((p) => {
+    p.benefits = p.benefits.filter((b) => b.trim());
+    if (p.features) p.features = cleanFeatures(p.features);
+  });
   out.intro.bullets = out.intro.bullets.filter((b) => b.trim());
   out.leadCapture.fields.forEach((f) => { if (f.options) f.options = f.options.filter((o) => o.trim()); });
   return out;

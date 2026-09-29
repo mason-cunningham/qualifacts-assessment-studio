@@ -33,6 +33,7 @@ export const AiOptionSchema = z.object({
   recommendProductId: z.string().describe('ID of a provided product that solves the need this answer reveals, or "" for none'),
   recommendBadge: z.string().describe('Short badge for the recommendation card, e.g. "Top Priority" or "Opportunity"; "" if no recommendation'),
   recommendRank: z.number().describe('Lower ranks sort first (0 for the weakest answer, 5 for a partial answer)'),
+  recommendFeatureIds: z.array(z.string()).describe("IDs of the recommended product's features that solve this answer's gap (1–2); [] if none or the product lists no features"),
 });
 
 export const AiQuestionSchema = z.object({
@@ -189,6 +190,26 @@ export const KnowledgeExtractSchema = z.object({
   summary: z.string(),
 });
 
+// ── Solutions library: fill a product from files ────────────────────────────
+export const ProductExtractSchema = z.object({
+  name: z.string(),
+  productLine: z.string().describe('"" if unclear'),
+  category: z.string().describe('e.g. "Revenue Cycle", "Client Engagement"; "" if unclear'),
+  tagline: z.string().describe('12 words or fewer'),
+  whatItDoes: z.string().describe('1–2 sentences'),
+  whyItMatters: z.string().describe('1–2 sentences on the outcome for the customer'),
+  benefits: z.array(z.string()).describe('3–6 benefits, each 12 words or fewer'),
+  ctaLabel: z.string().describe('Short button label, e.g. "See a demo"; "" if none suggested'),
+  features: z.array(z.object({
+    name: z.string().describe('Feature name as the source calls it'),
+    solves: z.string().describe("The problem it solves, in the customer's words (one sentence)"),
+    summary: z.string().describe('What it does (1–2 sentences)'),
+    benefits: z.array(z.string()).describe('Up to 3 short benefits'),
+  })).describe('3–10 distinct capabilities worth showing a customer'),
+  sourceNotes: z.string().describe('One or two sentences for the creator on what the sources covered and any gaps'),
+});
+
+export type ProductExtract = z.infer<typeof ProductExtractSchema>;
 export type AiOption = z.infer<typeof AiOptionSchema>;
 export type AiQuestion = z.infer<typeof AiQuestionSchema>;
 export type AiSection = z.infer<typeof AiSectionSchema>;

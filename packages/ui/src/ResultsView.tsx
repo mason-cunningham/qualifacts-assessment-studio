@@ -200,6 +200,46 @@ export function ResultsView({ definition: def, results: r, lead = {}, onRetake, 
                 {recs.map((rec) => {
                   const p = rec.product;
                   const ctaLabel = p.ctaLabel || def.recommendations.ctaLabel;
+                  const cta = ctaLabel && p.ctaUrl && (
+                    <a className="qq-btn qq-btn-cta qq-no-print" href={p.ctaUrl} target="_blank" rel="noopener noreferrer"
+                       onClick={() => onProductClick?.(p.id)} style={{ fontSize: 14, padding: '12px 22px' }}>
+                      {ctaLabel}
+                    </a>
+                  );
+                  const features = rec.features ?? [];
+                  // Answers pointed at specific feature sets: show just those, each with its own media
+                  if (features.length > 0) {
+                    return (
+                      <div className="qq-rec qq-rec-featured" key={rec.productId}>
+                        <div className="qq-rec-head">
+                          {rec.badge && <span className={`qq-rec-badge ${rec.rank > 0 ? 'qq-alt' : ''}`}>{rec.badge}</span>}
+                          {p.productLine && <div className="qq-rec-line">{p.productLine}</div>}
+                          <h3 className="qq-rec-name">{p.name}</h3>
+                          {p.tagline && <p className="qq-rec-what"><strong>{p.tagline}</strong></p>}
+                        </div>
+                        <div className="qq-rec-features">
+                          {features.map((f) => (
+                            <div className={`qq-rec-feature ${f.mediaUrl ? '' : 'qq-no-media'}`} key={f.id}>
+                              {f.mediaUrl && (
+                                <div className="qq-rec-media">
+                                  <img src={f.mediaUrl} alt={f.mediaAlt || `${f.name} in ${p.name}`} loading="lazy" onClick={() => setLightbox(f.mediaUrl!)} />
+                                </div>
+                              )}
+                              <div className="qq-rec-feature-body">
+                                <h4 className="qq-rec-feature-name">{f.name}</h4>
+                                {f.solves && <p className="qq-rec-solves"><span>Solves:</span> {f.solves}</p>}
+                                {f.summary && <p className="qq-rec-what">{f.summary}</p>}
+                                {f.benefits.length > 0 && (
+                                  <ul className="qq-rec-benefits">{f.benefits.slice(0, 3).map((b, bi) => <li key={bi}>{b}</li>)}</ul>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        {cta && <div className="qq-rec-foot">{cta}</div>}
+                      </div>
+                    );
+                  }
                   return (
                     <div className={`qq-rec ${p.imageUrl ? '' : 'qq-no-media'}`} key={rec.productId}>
                       {p.imageUrl && (
@@ -222,12 +262,7 @@ export function ResultsView({ definition: def, results: r, lead = {}, onRetake, 
                         {p.benefits.length > 0 && (
                           <ul className="qq-rec-benefits">{p.benefits.map((b, bi) => <li key={bi}>{b}</li>)}</ul>
                         )}
-                        {ctaLabel && p.ctaUrl && (
-                          <a className="qq-btn qq-btn-cta qq-no-print" href={p.ctaUrl} target="_blank" rel="noopener noreferrer"
-                             onClick={() => onProductClick?.(p.id)} style={{ fontSize: 14, padding: '12px 22px' }}>
-                            {ctaLabel}
-                          </a>
-                        )}
+                        {cta}
                       </div>
                     </div>
                   );

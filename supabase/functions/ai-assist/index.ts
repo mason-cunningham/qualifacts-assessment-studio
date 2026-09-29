@@ -31,7 +31,7 @@ How good assessments are built (learned from Qualifacts' best-performing ones):
   - "none": a survey that only collects answers and shows a thank-you.
   - Tiers cover the full range from 0 with no gaps (e.g. 80\u2013100, 60\u201379, 0\u201359). Use colors teal (strong) \u2192 amber (middle) \u2192 magenta / darkMagenta (weak).
 - Gate questions (role "gate") ask whether an area applies ("Does your organization manage grant funding?"); mark the "No"/"Not sure" choices notApplicable. Use showIfQuestionKey/showIfOptionLabels to hide follow-ups that can't apply. Use role "segment" for profiling questions (org type, role, size) that aren't scored, and "info" for optional open-ended feedback.
-- Recommendations: only map answers to product IDs you were given. Recommend on the weak and partial answers of the questions that product actually addresses. Use rank 0 with badge "Top Priority" for the weakest answer and rank 5 with badge "Opportunity" for a partial one. Never invent products, features, statistics, prices, or customer names.
+- Recommendations: only map answers to product IDs you were given. Recommend on the weak and partial answers of the questions that product actually addresses. Use rank 0 with badge "Top Priority" for the weakest answer and rank 5 with badge "Opportunity" for a partial one. When the product lists features, also set recommendFeatureIds to the 1\u20132 of that product's feature ids that directly solve the gap the answer reveals. Never invent products, features, statistics, prices, or customer names.
 - Results copy is warm, direct, and specific: tier summaries in one sentence, guidance that names what to fix first, and insights that reference the weakest areas ({{weakestSection}}, {{score}}, {{organization}} are available merge tags; {{score}} already includes its % sign, so write "{{score}}" and never "{{score}}%"). Write in Qualifacts' voice: confident, practical, empathetic to overstretched BH teams, never salesy or fear-based.
 - Lead forms ask only for what follow-up needs (usually first name, last name, work email, organization).
 
@@ -78,7 +78,8 @@ ${a.text}
         p.tagline && `tagline: ${p.tagline}`,
         p.what_it_does && `what it does: ${p.what_it_does}`,
         p.why_it_matters && `why it matters: ${p.why_it_matters}`,
-        p.benefits.length ? `benefits: ${p.benefits.join("; ")}` : ""
+        p.benefits.length ? `benefits: ${p.benefits.join("; ")}` : "",
+        ...featureLines(p.features)
       ].filter(Boolean);
       parts.push(`<product>
 ${lines.join("\n")}
@@ -93,6 +94,15 @@ ${ctx.notes.trim()}
 </creator_notes>`);
   if (parts.length) blocks.push({ type: "text", text: parts.join("\n\n") });
   return blocks;
+}
+function featureLines(raw) {
+  if (!Array.isArray(raw)) return [];
+  const s = (v) => typeof v === "string" ? v.trim() : "";
+  return raw.flatMap((f) => {
+    const o = f ?? {};
+    if (!s(o.id) || !s(o.name)) return [];
+    return [`feature ${s(o.id)}: ${s(o.name)}${s(o.solves) ? ` | solves: ${s(o.solves)}` : ""}${s(o.summary) ? ` | ${s(o.summary)}` : ""}`];
+  });
 }
 function briefText(b) {
   const scoring = b.scoringStyle === "auto" ? 'Choose the scoring method that best fits the goal (usually "points").' : `Use scoringMethod "${b.scoringStyle}".`;
@@ -144,7 +154,7 @@ function planTask(brief, opts = {}) {
 
 This is step 1 of 2. Produce everything EXCEPT the questions: title, intro, scoring method, sections, score tiers, section tiers, guidance insights, recommendations, lead capture, results copy and design notes. Questions are written next, section by section, from your plan, so for every section give:
 - questionCount: how many questions it gets (the counts should add up to the target)
-- questionBrief: 2\u20134 sentences on exactly what its questions should cover, which practices separate strong from weak answers, and which of the section's products the weak answers point to. Don't repeat topics across sections.
+- questionBrief: 2\u20134 sentences on exactly what its questions should cover, which practices separate strong from weak answers, and which of the section's products (and which of their features, by id) the weak answers point to. Don't repeat topics across sections.
 Use tierBasis "percent" (the questions and their points aren't written yet), and write tiers and insights that work for any reasonable point spread.
 
 <brief>
@@ -185,7 +195,7 @@ Rules for this section:
 - Answer choices are short and clear: one situation each, ideally 40\u201390 characters and never over 110, parallel in length and wording. Use simple scales (Yes/No, frequency, ranges) wherever they fit.
 - Branching (showIfQuestionKey) may only point to an EARLIER question in this same section.
 - Follow the plan's scoringMethod ("${p.scoringMethod ?? "points"}").
-- Recommend only this section's products: ${s?.productIds?.length ? s.productIds.join(", ") : 'none (leave recommendProductId "")'}.`
+- Recommend only this section's products: ${s?.productIds?.length ? s.productIds.join(", ") : 'none (leave recommendProductId "")'}. When a recommended product lists features, set recommendFeatureIds to the 1\u20132 of its feature ids that solve that answer's gap; otherwise [].`
   ];
   if (opts.revision) {
     parts.push(`This section's questions from the previous draft are below. Apply the creator's revision notes where they affect this section and keep everything else that was good.
@@ -204,6 +214,23 @@ function extractKnowledgeTask(req) {
   return `Turn the uploaded material into a reusable knowledge document that future assessment generation can draw on. Capture every concrete fact, capability, best practice, benchmark, and piece of terminology, organized under clear Markdown headings. Leave out marketing filler, and don't add facts that aren't in the source.${req.hint ? `
 
 Creator's note about this material: ${req.hint}` : ""}`;
+}
+function extractProductTask(req) {
+  const cur = req.current;
+  const existing = cur?.features?.map((f) => f.name).filter(Boolean) ?? [];
+  return `Fill in a Solutions-library entry for one Qualifacts product from the uploaded material (pitch decks, messaging guides, one-pagers). This entry is used on assessment results pages to show prospects how the product solves the problems their answers revealed.
+${cur?.name ? `
+The product being filled in: ${cur.name}${cur.productLine ? ` (${cur.productLine})` : ""}. If the material covers several products, use only what applies to this one.` : ""}
+${existing.length ? `
+It already has these features; reuse their exact names when the material describes them, so they're updated instead of duplicated: ${existing.join("; ")}.` : ""}
+
+Rules:
+- Use only facts stated in the material. Never invent capabilities, statistics, customer names, awards or prices; leave a field "" (or a list empty) when the material doesn't support it.
+- Write for a behavioral health operations or finance leader: plain, specific, confident, never hype.
+- Keep it tight: tagline 12 words or fewer; "what it does" and "why it matters" 1\u20132 sentences each; 3\u20136 benefits of 12 words or fewer.
+- Features: 3\u201310 distinct capabilities a customer would recognize, each with the problem it solves in the customer's own words (e.g. the pain they feel), what it does, and up to 3 short benefits. Don't split one capability into several features or repeat the same benefit.${req.hint ? `
+
+Creator's note: ${req.hint}` : ""}`;
 }
 function questionText(req) {
   const q = req.question;
@@ -479,6 +506,13 @@ var SCHEMAS = {
                   "recommendRank": {
                     "type": "number",
                     "description": "Lower ranks sort first (0 for the weakest answer, 5 for a partial answer)"
+                  },
+                  "recommendFeatureIds": {
+                    "type": "array",
+                    "description": "IDs of the recommended product's features that solve this answer's gap (1\u20132); [] if none or the product lists no features",
+                    "items": {
+                      "type": "string"
+                    }
                   }
                 },
                 "additionalProperties": false,
@@ -490,7 +524,8 @@ var SCHEMAS = {
                   "allowOtherText",
                   "recommendProductId",
                   "recommendBadge",
-                  "recommendRank"
+                  "recommendRank",
+                  "recommendFeatureIds"
                 ]
               }
             },
@@ -1196,6 +1231,13 @@ var SCHEMAS = {
                   "recommendRank": {
                     "type": "number",
                     "description": "Lower ranks sort first (0 for the weakest answer, 5 for a partial answer)"
+                  },
+                  "recommendFeatureIds": {
+                    "type": "array",
+                    "description": "IDs of the recommended product's features that solve this answer's gap (1\u20132); [] if none or the product lists no features",
+                    "items": {
+                      "type": "string"
+                    }
                   }
                 },
                 "additionalProperties": false,
@@ -1207,7 +1249,8 @@ var SCHEMAS = {
                   "allowOtherText",
                   "recommendProductId",
                   "recommendBadge",
-                  "recommendRank"
+                  "recommendRank",
+                  "recommendFeatureIds"
                 ]
               }
             },
@@ -1457,6 +1500,98 @@ var SCHEMAS = {
       "summary"
     ],
     "description": '{$schema: "https://json-schema.org/draft/2020-12/schema"}'
+  },
+  "ProductExtract": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "type": "string"
+      },
+      "productLine": {
+        "type": "string",
+        "description": '"" if unclear'
+      },
+      "category": {
+        "type": "string",
+        "description": 'e.g. "Revenue Cycle", "Client Engagement"; "" if unclear'
+      },
+      "tagline": {
+        "type": "string",
+        "description": "12 words or fewer"
+      },
+      "whatItDoes": {
+        "type": "string",
+        "description": "1\u20132 sentences"
+      },
+      "whyItMatters": {
+        "type": "string",
+        "description": "1\u20132 sentences on the outcome for the customer"
+      },
+      "benefits": {
+        "type": "array",
+        "description": "3\u20136 benefits, each 12 words or fewer",
+        "items": {
+          "type": "string"
+        }
+      },
+      "ctaLabel": {
+        "type": "string",
+        "description": 'Short button label, e.g. "See a demo"; "" if none suggested'
+      },
+      "features": {
+        "type": "array",
+        "description": "3\u201310 distinct capabilities worth showing a customer",
+        "items": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "Feature name as the source calls it"
+            },
+            "solves": {
+              "type": "string",
+              "description": "The problem it solves, in the customer's words (one sentence)"
+            },
+            "summary": {
+              "type": "string",
+              "description": "What it does (1\u20132 sentences)"
+            },
+            "benefits": {
+              "type": "array",
+              "description": "Up to 3 short benefits",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "name",
+            "solves",
+            "summary",
+            "benefits"
+          ]
+        }
+      },
+      "sourceNotes": {
+        "type": "string",
+        "description": "One or two sentences for the creator on what the sources covered and any gaps"
+      }
+    },
+    "additionalProperties": false,
+    "required": [
+      "name",
+      "productLine",
+      "category",
+      "tagline",
+      "whatItDoes",
+      "whyItMatters",
+      "benefits",
+      "ctaLabel",
+      "features",
+      "sourceNotes"
+    ],
+    "description": '{$schema: "https://json-schema.org/draft/2020-12/schema"}'
   }
 };
 
@@ -1468,6 +1603,7 @@ var MODE_CONFIG = {
   generate_plan: { schema: "AiPlan", effort: "medium", maxTokens: 12e3, constrained: false },
   generate_section: { schema: "AiSectionQuestions", effort: "medium", maxTokens: 12e3, constrained: false },
   extract_knowledge: { schema: "KnowledgeExtract", effort: "medium", maxTokens: 16e3, constrained: true },
+  extract_product: { schema: "ProductExtract", effort: "medium", maxTokens: 16e3, constrained: true },
   rewrite: { schema: "RewriteResult", effort: "low", maxTokens: 4e3, constrained: true },
   options: { schema: "OptionsResult", effort: "low", maxTokens: 4e3, constrained: true },
   tier_copy: { schema: "TierCopyResult", effort: "medium", maxTokens: 8e3, constrained: true },
@@ -1705,6 +1841,12 @@ async function buildContent(db, body, meta) {
       meta.files = ctx.pdfs.length + ctx.attachments.length;
       return [...contextBlocks({ ...ctx, products: [], knowledge: [] }, { includeProducts: false }), { type: "text", text: extractKnowledgeTask(body) }];
     }
+    case "extract_product": {
+      const ctx = await loadContext(db, [], [], body.files ?? [], body.attachments ?? [], "");
+      if (ctx.pdfs.length + ctx.attachments.length === 0) throw new Error("Upload at least one file to read.");
+      meta.files = ctx.pdfs.length + ctx.attachments.length;
+      return [...contextBlocks({ ...ctx, products: [], knowledge: [] }, { includeProducts: false }), { type: "text", text: extractProductTask(body) }];
+    }
     case "rewrite":
       return [{ type: "text", text: rewriteTask(body) }];
     case "options":
@@ -1725,7 +1867,7 @@ async function loadContext(db, knowledgeIds, productIds, files, attachments, not
   }
   let products = [];
   if (productIds.length) {
-    const { data, error } = await db.from("q-quiz-products").select("id,name,product_line,category,tagline,what_it_does,why_it_matters,benefits").in("id", productIds.slice(0, 100));
+    const { data, error } = await db.from("q-quiz-products").select("id,name,product_line,category,tagline,what_it_does,why_it_matters,benefits,features").in("id", productIds.slice(0, 100));
     if (error) throw new Error(`Couldn't load products: ${error.message}`);
     products = (data ?? []).map((p) => ({ ...p, benefits: Array.isArray(p.benefits) ? p.benefits : [] }));
   }

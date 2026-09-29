@@ -59,6 +59,7 @@ function option(raw: unknown) {
     recommendProductId: str(o.recommendProductId),
     recommendBadge: str(o.recommendBadge),
     recommendRank: num(o.recommendRank),
+    recommendFeatureIds: strArr(o.recommendFeatureIds),
   };
 }
 

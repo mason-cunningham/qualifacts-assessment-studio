@@ -1173,6 +1173,18 @@ select public.q_quiz_ensure_policy('public', 'q-quiz-assessment-shares', 'q_quiz
 
 
 -- ════════════════════════════════════════════════════════════════════════════
+-- 11. PRODUCT FEATURE SETS  (same as 006_product_features.sql)
+-- ════════════════════════════════════════════════════════════════════════════
+alter table public."q-quiz-products"
+  add column if not exists features jsonb not null default '[]'::jsonb;
+do $$ begin
+  alter table public."q-quiz-products"
+    add constraint q_quiz_products_features_chk check (jsonb_typeof(features) = 'array');
+exception when duplicate_object then null;
+end $$;
+
+
+-- ════════════════════════════════════════════════════════════════════════════
 -- Done. Quick checks you can run afterwards:
 --   select email, role, is_active from "q-quiz-profiles";          -- who has access
 --   select public.q_quiz_get_published('does-not-exist');          -- should return NULL

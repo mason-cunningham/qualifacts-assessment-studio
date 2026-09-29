@@ -158,7 +158,7 @@ export function ResponseDetailPage() {
               <div className="stat-value">{r.score_pct != null ? `${Math.round(Number(r.score_pct))}%` : '—'}</div>
               <div className="small muted">{r.tier_label ?? 'Unscored'}{r.score_max ? ` · ${r.score_points}/${r.score_max} points` : ''}</div>
               {r.recommendations?.length > 0 && (
-                <div className="small" style={{ marginTop: 8 }}><b>Recommended:</b> {r.recommendations.map((x) => x.name).join(', ')}</div>
+                <div className="small" style={{ marginTop: 8 }}><b>Recommended:</b> {r.recommendations.map((x) => (x.features?.length ? `${x.name} (${x.features.join(', ')})` : x.name)).join('; ')}</div>
               )}
             </div>
 

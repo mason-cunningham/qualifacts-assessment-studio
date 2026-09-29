@@ -130,7 +130,7 @@ export interface ResponseRow {
   tier_label: string | null;
   section_scores: SectionScore[];
   answers: AnswerRecord[];
-  recommendations: { product_id: string; name: string; badge: string | null; rank: number }[];
+  recommendations: { product_id: string; name: string; badge: string | null; rank: number; features?: string[] }[];
   source: string | null;
   rep_code: string | null;
   utm_source: string | null;
@@ -165,6 +165,8 @@ export interface ProductRow {
   logo_url: string | null;
   cta_label: string | null;
   cta_url: string | null;
+  /** Feature sets (jsonb): see ProductFeature in @qq/schema */
+  features: unknown[];
   tags: string[];
   is_active: boolean;
   created_at: string;

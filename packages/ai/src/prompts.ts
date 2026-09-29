@@ -1,6 +1,7 @@
 import type Anthropic from '@anthropic-ai/sdk';
 import type {
   ExtractKnowledgeRequest,
+  ExtractProductRequest,
   GenerateBrief,
   OptionsRequest,
   RewriteRequest,
@@ -35,7 +36,7 @@ How good assessments are built (learned from Qualifacts' best-performing ones):
   - "none": a survey that only collects answers and shows a thank-you.
   - Tiers cover the full range from 0 with no gaps (e.g. 80–100, 60–79, 0–59). Use colors teal (strong) → amber (middle) → magenta / darkMagenta (weak).
 - Gate questions (role "gate") ask whether an area applies ("Does your organization manage grant funding?"); mark the "No"/"Not sure" choices notApplicable. Use showIfQuestionKey/showIfOptionLabels to hide follow-ups that can't apply. Use role "segment" for profiling questions (org type, role, size) that aren't scored, and "info" for optional open-ended feedback.
-- Recommendations: only map answers to product IDs you were given. Recommend on the weak and partial answers of the questions that product actually addresses. Use rank 0 with badge "Top Priority" for the weakest answer and rank 5 with badge "Opportunity" for a partial one. Never invent products, features, statistics, prices, or customer names.
+- Recommendations: only map answers to product IDs you were given. Recommend on the weak and partial answers of the questions that product actually addresses. Use rank 0 with badge "Top Priority" for the weakest answer and rank 5 with badge "Opportunity" for a partial one. When the product lists features, also set recommendFeatureIds to the 1–2 of that product's feature ids that directly solve the gap the answer reveals. Never invent products, features, statistics, prices, or customer names.
 - Results copy is warm, direct, and specific: tier summaries in one sentence, guidance that names what to fix first, and insights that reference the weakest areas ({{weakestSection}}, {{score}}, {{organization}} are available merge tags; {{score}} already includes its % sign, so write "{{score}}" and never "{{score}}%"). Write in Qualifacts' voice: confident, practical, empathetic to overstretched BH teams, never salesy or fear-based.
 - Lead forms ask only for what follow-up needs (usually first name, last name, work email, organization).
 
@@ -63,6 +64,8 @@ export interface ProductForPrompt {
   what_it_does: string | null;
   why_it_matters: string | null;
   benefits: string[];
+  /** Optional feature sets (library jsonb) */
+  features?: unknown[];
 }
 
 export interface PdfForPrompt {
@@ -122,6 +125,7 @@ export function contextBlocks(ctx: ContextInput, opts: { includeProducts?: boole
         p.what_it_does && `what it does: ${p.what_it_does}`,
         p.why_it_matters && `why it matters: ${p.why_it_matters}`,
         p.benefits.length ? `benefits: ${p.benefits.join('; ')}` : '',
+        ...featureLines(p.features),
       ].filter(Boolean);
       parts.push(`<product>\n${lines.join('\n')}\n</product>`);
     }
@@ -133,6 +137,17 @@ export function contextBlocks(ctx: ContextInput, opts: { includeProducts?: boole
 
   if (parts.length) blocks.push({ type: 'text', text: parts.join('\n\n') });
   return blocks;
+}
+
+/** One line per named feature: "feature f_x: Name | solves: … | what it does" */
+function featureLines(raw: unknown[] | undefined): string[] {
+  if (!Array.isArray(raw)) return [];
+  const s = (v: unknown) => (typeof v === 'string' ? v.trim() : '');
+  return raw.flatMap((f) => {
+    const o = (f ?? {}) as Record<string, unknown>;
+    if (!s(o.id) || !s(o.name)) return [];
+    return [`feature ${s(o.id)}: ${s(o.name)}${s(o.solves) ? ` | solves: ${s(o.solves)}` : ''}${s(o.summary) ? ` | ${s(o.summary)}` : ''}`];
+  });
 }
 
 function briefText(b: GenerateBrief): string {
@@ -199,7 +214,7 @@ export function planTask(brief: GenerateBrief, opts: { importMode?: boolean; rev
 
 This is step 1 of 2. Produce everything EXCEPT the questions: title, intro, scoring method, sections, score tiers, section tiers, guidance insights, recommendations, lead capture, results copy and design notes. Questions are written next, section by section, from your plan, so for every section give:
 - questionCount: how many questions it gets (the counts should add up to the target)
-- questionBrief: 2–4 sentences on exactly what its questions should cover, which practices separate strong from weak answers, and which of the section's products the weak answers point to. Don't repeat topics across sections.
+- questionBrief: 2–4 sentences on exactly what its questions should cover, which practices separate strong from weak answers, and which of the section's products (and which of their features, by id) the weak answers point to. Don't repeat topics across sections.
 Use tierBasis "percent" (the questions and their points aren't written yet), and write tiers and insights that work for any reasonable point spread.
 
 <brief>
@@ -246,7 +261,7 @@ Rules for this section:
 - Answer choices are short and clear: one situation each, ideally 40–90 characters and never over 110, parallel in length and wording. Use simple scales (Yes/No, frequency, ranges) wherever they fit.
 - Branching (showIfQuestionKey) may only point to an EARLIER question in this same section.
 - Follow the plan's scoringMethod ("${p.scoringMethod ?? 'points'}").
-- Recommend only this section's products: ${s?.productIds?.length ? s.productIds.join(', ') : 'none (leave recommendProductId "")'}.`,
+- Recommend only this section's products: ${s?.productIds?.length ? s.productIds.join(', ') : 'none (leave recommendProductId "")'}. When a recommended product lists features, set recommendFeatureIds to the 1–2 of its feature ids that solve that answer's gap; otherwise [].`,
   ];
   if (opts.revision) {
     parts.push(`This section's questions from the previous draft are below. Apply the creator's revision notes where they affect this section and keep everything else that was good.
@@ -264,6 +279,20 @@ ${JSON.stringify(opts.revision.previous)}
 
 export function extractKnowledgeTask(req: ExtractKnowledgeRequest): string {
   return `Turn the uploaded material into a reusable knowledge document that future assessment generation can draw on. Capture every concrete fact, capability, best practice, benchmark, and piece of terminology, organized under clear Markdown headings. Leave out marketing filler, and don't add facts that aren't in the source.${req.hint ? `\n\nCreator's note about this material: ${req.hint}` : ''}`;
+}
+
+export function extractProductTask(req: ExtractProductRequest): string {
+  const cur = req.current;
+  const existing = cur?.features?.map((f) => f.name).filter(Boolean) ?? [];
+  return `Fill in a Solutions-library entry for one Qualifacts product from the uploaded material (pitch decks, messaging guides, one-pagers). This entry is used on assessment results pages to show prospects how the product solves the problems their answers revealed.
+${cur?.name ? `\nThe product being filled in: ${cur.name}${cur.productLine ? ` (${cur.productLine})` : ''}. If the material covers several products, use only what applies to this one.` : ''}
+${existing.length ? `\nIt already has these features; reuse their exact names when the material describes them, so they're updated instead of duplicated: ${existing.join('; ')}.` : ''}
+
+Rules:
+- Use only facts stated in the material. Never invent capabilities, statistics, customer names, awards or prices; leave a field "" (or a list empty) when the material doesn't support it.
+- Write for a behavioral health operations or finance leader: plain, specific, confident, never hype.
+- Keep it tight: tagline 12 words or fewer; "what it does" and "why it matters" 1–2 sentences each; 3–6 benefits of 12 words or fewer.
+- Features: 3–10 distinct capabilities a customer would recognize, each with the problem it solves in the customer's own words (e.g. the pain they feel), what it does, and up to 3 short benefits. Don't split one capability into several features or repeat the same benefit.${req.hint ? `\n\nCreator's note: ${req.hint}` : ''}`;
 }
 
 function questionText(req: RewriteRequest | OptionsRequest): string {

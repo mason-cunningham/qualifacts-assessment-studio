@@ -8,6 +8,7 @@ import { useAuth } from '../lib/auth';
 import { productFromRow, productToRow } from '../lib/products';
 import type { ProductRow } from '../lib/types';
 import { ProductFields } from './editor/SolutionsTab';
+import { ProductAiFill } from '../components/ProductAiFill';
 
 export function ProductsPage() {
   const { canEdit, isAdmin } = useAuth();
@@ -84,7 +85,11 @@ export function ProductsPage() {
                 {filtered.map((r) => (
                   <tr key={r.id} style={{ opacity: r.is_active ? 1 : 0.5 }}>
                     <td style={{ width: 60 }}>{r.image_url && <img src={r.image_url} alt="" style={{ width: 52, height: 36, objectFit: 'cover', borderRadius: 4 }} />}</td>
-                    <td><b style={{ color: 'var(--navy)' }}>{r.name}</b>{!r.is_active && <div className="small muted">Inactive</div>}</td>
+                    <td>
+                      <b style={{ color: 'var(--navy)' }}>{r.name}</b>
+                      {Array.isArray(r.features) && r.features.length > 0 && <div className="small muted">{r.features.length} feature set{r.features.length === 1 ? '' : 's'}</div>}
+                      {!r.is_active && <div className="small muted">Inactive</div>}
+                    </td>
                     <td>{r.product_line}</td>
                     <td>{r.category}</td>
                     <td className="small muted" style={{ maxWidth: 420 }}>{r.what_it_does?.slice(0, 160)}{(r.what_it_does?.length ?? 0) > 160 ? '…' : ''}</td>
@@ -107,6 +112,7 @@ export function ProductsPage() {
           wide
           footer={<><button className="btn btn-ghost" onClick={() => setEditing(null)}>Cancel</button><button className="btn btn-primary" disabled={busy} onClick={save}>Save</button></>}
         >
+          <ProductAiFill p={editing.p} category={editing.category} onApply={(next) => setEditing((e) => e && { ...e, ...next })} />
           <ProductFields p={editing.p} set={(fn) => setEditing((e) => { if (!e) return e; const p = structuredClone(e.p); fn(p); return { ...e, p }; })} />
           <div className="field">
             <label>Category</label>

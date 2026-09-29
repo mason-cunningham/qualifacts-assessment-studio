@@ -24,7 +24,7 @@ const LEAD_COLUMNS: Column[] = [
   { key: 'score_points', header: 'Points', get: (r) => r.score_points },
   { key: 'score_max', header: 'Max Points', get: (r) => r.score_max },
   { key: 'tier_label', header: 'Tier', get: (r) => r.tier_label },
-  { key: 'recommendations', header: 'Recommended Solutions', get: (r) => r.recommendations.map((x) => x.name).join('; ') },
+  { key: 'recommendations', header: 'Recommended Solutions', get: (r) => r.recommendations.map((x) => (x.features?.length ? `${x.name} (${x.features.join(', ')})` : x.name)).join('; ') },
   { key: 'follow_up_status', header: 'Follow-up', get: (r) => FOLLOW_UP_LABELS[r.follow_up_status] },
   { key: 'source', header: 'Source', get: (r) => r.source },
   { key: 'rep_code', header: 'Rep', get: (r) => r.rep_code },

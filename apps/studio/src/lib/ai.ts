@@ -3,6 +3,7 @@ import {
   AiPlanSchema,
   AiSectionQuestionsSchema,
   KnowledgeExtractSchema,
+  ProductExtractSchema,
   OptionsResultSchema,
   ReviewResultSchema,
   RewriteResultSchema,
@@ -18,6 +19,8 @@ import {
   type GenerateSectionRequest,
   type AiRequest,
   type ExtractKnowledgeRequest,
+  type ExtractProductRequest,
+  type ProductExtract,
   type GenerateRequest,
   type ImportRequest,
   type KnowledgeExtract,
@@ -39,6 +42,7 @@ type ResultFor<R extends AiRequest> =
   : R extends GeneratePlanRequest ? AiPlan
   : R extends GenerateSectionRequest ? AiSectionQuestions
   : R extends ExtractKnowledgeRequest ? KnowledgeExtract
+  : R extends ExtractProductRequest ? ProductExtract
   : R extends RewriteRequest ? RewriteResult
   : R extends OptionsRequest ? OptionsResult
   : R extends TierCopyRequest ? TierCopyResult
@@ -51,6 +55,7 @@ const SCHEMA = {
   generate_plan: AiPlanSchema,
   generate_section: AiSectionQuestionsSchema,
   extract_knowledge: KnowledgeExtractSchema,
+  extract_product: ProductExtractSchema,
   rewrite: RewriteResultSchema,
   options: OptionsResultSchema,
   tier_copy: TierCopyResultSchema,

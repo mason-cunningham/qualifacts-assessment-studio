@@ -28,6 +28,7 @@ const schemas = {
   TierCopyResult: S.TierCopyResultSchema,
   ReviewResult: S.ReviewResultSchema,
   KnowledgeExtract: S.KnowledgeExtractSchema,
+  ProductExtract: S.ProductExtractSchema,
 };
 const out = {};
 for (const [k, v] of Object.entries(schemas)) out[k] = zodOutputFormat(v).schema;

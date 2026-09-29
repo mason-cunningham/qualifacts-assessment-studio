@@ -16,6 +16,7 @@ import {
   SYSTEM_PROMPT,
   contextBlocks,
   extractKnowledgeTask,
+  extractProductTask,
   generateTask,
   importTask,
   optionsTask,
@@ -48,6 +49,7 @@ const MODE_CONFIG: Record<AiMode, { schema: keyof typeof SCHEMAS; effort: Effort
   generate_plan: { schema: 'AiPlan', effort: 'medium', maxTokens: 12000, constrained: false },
   generate_section: { schema: 'AiSectionQuestions', effort: 'medium', maxTokens: 12000, constrained: false },
   extract_knowledge: { schema: 'KnowledgeExtract', effort: 'medium', maxTokens: 16000, constrained: true },
+  extract_product: { schema: 'ProductExtract', effort: 'medium', maxTokens: 16000, constrained: true },
   rewrite: { schema: 'RewriteResult', effort: 'low', maxTokens: 4000, constrained: true },
   options: { schema: 'OptionsResult', effort: 'low', maxTokens: 4000, constrained: true },
   tier_copy: { schema: 'TierCopyResult', effort: 'medium', maxTokens: 8000, constrained: true },
@@ -322,6 +324,12 @@ async function buildContent(db: any, body: AiRequest, meta: Record<string, unkno
       meta.files = ctx.pdfs.length + ctx.attachments.length;
       return [...contextBlocks({ ...ctx, products: [], knowledge: [] }, { includeProducts: false }), { type: 'text', text: extractKnowledgeTask(body) }];
     }
+    case 'extract_product': {
+      const ctx = await loadContext(db, [], [], body.files ?? [], body.attachments ?? [], '');
+      if (ctx.pdfs.length + ctx.attachments.length === 0) throw new Error('Upload at least one file to read.');
+      meta.files = ctx.pdfs.length + ctx.attachments.length;
+      return [...contextBlocks({ ...ctx, products: [], knowledge: [] }, { includeProducts: false }), { type: 'text', text: extractProductTask(body) }];
+    }
     case 'rewrite':
       return [{ type: 'text', text: rewriteTask(body) }];
     case 'options':
@@ -344,7 +352,7 @@ async function loadContext(db: any, knowledgeIds: string[], productIds: string[]
   }
   let products: ProductForPrompt[] = [];
   if (productIds.length) {
-    const { data, error } = await db.from('q-quiz-products').select('id,name,product_line,category,tagline,what_it_does,why_it_matters,benefits').in('id', productIds.slice(0, 100));
+    const { data, error } = await db.from('q-quiz-products').select('id,name,product_line,category,tagline,what_it_does,why_it_matters,benefits,features').in('id', productIds.slice(0, 100));
     if (error) throw new Error(`Couldn't load products: ${error.message}`);
     products = (data ?? []).map((p: ProductForPrompt) => ({ ...p, benefits: Array.isArray(p.benefits) ? p.benefits : [] }));
   }

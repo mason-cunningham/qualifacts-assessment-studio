@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { isChoiceType, newId, type ProductSnapshot, type RuleWhen } from '@qq/schema';
+import { isChoiceType, newId, type ProductFeature, type ProductSnapshot, type RuleWhen } from '@qq/schema';
 import { orderedQuestions } from '@qq/engine';
 import { Field, ImageField, Modal, NumberInput, TextArea, TextInput, useToast } from '../../components/ui';
 import { supabase, T } from '../../lib/supabase';
@@ -157,7 +157,7 @@ export function SolutionsTab({ def, update, readOnly }: EditorProps) {
         <>
           <div className="card">
             <div className="card-title">Recommend by answer</div>
-            <div className="card-sub">Pick a product for any answer that signals a need. "Rank" orders cards (lower first), e.g. 0 = Top Priority, 5 = Opportunity.</div>
+            <div className="card-sub">Pick a product for any answer that signals a need. "Rank" orders cards (lower first), e.g. 0 = Top Priority, 5 = Opportunity. If the product has feature sets, tick the ones that solve that need: the results card then shows just those, with their images.</div>
             {choiceQuestions.map((q) => (
               <div key={q.id} className="hairline-bottom" style={{ padding: '10px 0' }}>
                 <b className="small" style={{ color: 'var(--navy)' }}>{q.shortLabel || q.text}</b>
@@ -173,7 +173,7 @@ export function SolutionsTab({ def, update, readOnly }: EditorProps) {
                     <div key={o.id} className="row small" style={{ flexWrap: 'wrap', padding: '3px 0 3px 12px' }}>
                       <span style={{ flex: 2, minWidth: 180 }}>{o.label || '(blank)'}</span>
                       <select className="select input-sm" style={{ flex: 1, minWidth: 160 }} value={r?.productIds[0] ?? ''}
-                        onChange={(e) => setR((x) => { x.productIds = e.target.value ? [e.target.value] : []; })}>
+                        onChange={(e) => setR((x) => { x.productIds = e.target.value ? [e.target.value] : []; x.featureIds = undefined; })}>
                         <option value="">No recommendation</option>
                         {def.products.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
                       </select>
@@ -181,6 +181,8 @@ export function SolutionsTab({ def, update, readOnly }: EditorProps) {
                         <>
                           <input className="input input-sm" style={{ width: 130 }} placeholder="Badge" value={r.badge ?? ''} onChange={(e) => setR((x) => { x.badge = e.target.value || undefined; })} />
                           <label className="check small">Rank <NumberInput className="input input-sm input-num" value={r.rank} onChange={(v) => setR((x) => { x.rank = v; })} /></label>
+                          <FeatureChips product={def.products.find((p) => p.id === r.productIds[0])} value={r.featureIds}
+                            onChange={(ids) => setR((x) => { x.featureIds = ids.length ? ids : undefined; })} />
                         </>
                       )}
                     </div>
@@ -197,7 +199,7 @@ export function SolutionsTab({ def, update, readOnly }: EditorProps) {
               <div key={rule.id} className="rule-box" style={{ marginBottom: 8 }}>
                 <div className="row small" style={{ flexWrap: 'wrap' }}>
                   Recommend
-                  <select className="select input-sm" style={{ width: 'auto' }} value={rule.productId} onChange={(e) => update((d) => { d.recommendations.rules[i].productId = e.target.value; })}>
+                  <select className="select input-sm" style={{ width: 'auto' }} value={rule.productId} onChange={(e) => update((d) => { d.recommendations.rules[i].productId = e.target.value; d.recommendations.rules[i].featureIds = undefined; })}>
                     {!def.products.some((p) => p.id === rule.productId) && <option value={rule.productId}>{productName(rule.productId)}</option>}
                     {def.products.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
                   </select>
@@ -207,6 +209,8 @@ export function SolutionsTab({ def, update, readOnly }: EditorProps) {
                   <label className="check small">Rank <NumberInput className="input input-sm input-num" value={rule.rank} onChange={(v) => update((d) => { d.recommendations.rules[i].rank = v; })} /></label>
                   <button type="button" className="btn btn-ghost btn-sm" onClick={() => update((d) => { d.recommendations.rules.splice(i, 1); })}>Remove</button>
                 </div>
+                <FeatureChips product={def.products.find((p) => p.id === rule.productId)} value={rule.featureIds}
+                  onChange={(ids) => update((d) => { d.recommendations.rules[i].featureIds = ids.length ? ids : undefined; })} />
               </div>
             ))}
             <button type="button" className="btn btn-secondary btn-sm" onClick={() => update((d) => {
@@ -275,7 +279,89 @@ export function ProductFields({ p, set }: { p: ProductSnapshot; set: (fn: (x: Pr
         <Field label="Button label"><TextInput value={p.ctaLabel} onChange={(v) => set((x) => { x.ctaLabel = v || undefined; })} placeholder="Learn more" /></Field>
         <Field label="Button URL"><TextInput value={p.ctaUrl} onChange={(v) => set((x) => { x.ctaUrl = v || undefined; })} placeholder="https://" /></Field>
       </div>
+      <FeatureSetsEditor p={p} set={set} />
     </>
+  );
+}
+
+/** Optional feature sets: specific capabilities with their own image/GIF, shown on results when an answer maps to them. */
+function FeatureSetsEditor({ p, set }: { p: ProductSnapshot; set: (fn: (x: ProductSnapshot) => void) => void }) {
+  const features = p.features ?? [];
+  const [open, setOpen] = useState<string | null>(null);
+  const setF = (i: number, fn: (f: ProductFeature) => void) => set((x) => { fn((x.features ??= [])[i]); });
+  const add = () => {
+    const f: ProductFeature = { id: newId('f'), name: '', benefits: [] };
+    set((x) => { (x.features ??= []).push(f); });
+    setOpen(f.id);
+  };
+  return (
+    <div style={{ marginTop: 8 }}>
+      <div className="divider" />
+      <div className="row-between" style={{ marginBottom: 8 }}>
+        <div>
+          <div className="card-title" style={{ fontSize: 15 }}>Feature sets <span className="small muted">({features.length})</span></div>
+          <div className="small muted">Specific capabilities worth highlighting. Map answers to them and the results card shows just the matching ones, each with its own image or GIF.</div>
+        </div>
+        <button type="button" className="btn btn-secondary btn-sm" onClick={add}>+ Add feature</button>
+      </div>
+      <div className="stack" style={{ gap: 8 }}>
+        {features.map((f, i) => {
+          const isOpen = open === f.id;
+          return (
+            <div key={f.id} className="subtle-box" style={{ padding: '10px 12px' }}>
+              <div className="row-between">
+                <button type="button" className="btn btn-ghost btn-sm" style={{ flex: 1, justifyContent: 'flex-start', minWidth: 0 }} onClick={() => setOpen(isOpen ? null : f.id)}>
+                  {f.mediaUrl && <img src={f.mediaUrl} alt="" style={{ width: 32, height: 24, objectFit: 'cover', borderRadius: 4 }} />}
+                  <span className="s-ellipsis" style={{ color: 'var(--navy)' }}>{f.name || 'Untitled feature'}</span>
+                  <span className="muted">{isOpen ? '▾' : '▸'}</span>
+                </button>
+                <div className="btn-row" style={{ flexWrap: 'nowrap' }}>
+                  <button type="button" className="btn btn-ghost btn-icon btn-sm" aria-label="Move up" onClick={() => set((x) => move(x.features ??= [], i, -1))}>↑</button>
+                  <button type="button" className="btn btn-ghost btn-icon btn-sm" aria-label="Move down" onClick={() => set((x) => move(x.features ??= [], i, 1))}>↓</button>
+                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => window.confirm(`Remove "${f.name || 'this feature'}"?`) && set((x) => { x.features = (x.features ?? []).filter((y) => y.id !== f.id); })}>Remove</button>
+                </div>
+              </div>
+              {isOpen && (
+                <div style={{ marginTop: 10 }}>
+                  <Field label="Feature name"><TextInput value={f.name} onChange={(v) => setF(i, (y) => { y.name = v; })} placeholder="e.g. Real-time eligibility checks" /></Field>
+                  <Field label="Problem it solves" hint="In the customer's words, e.g. “Denials from coverage that lapsed before the visit”">
+                    <TextArea rows={2} value={f.solves} onChange={(v) => setF(i, (y) => { y.solves = v || undefined; })} />
+                  </Field>
+                  <Field label="What it does"><TextArea rows={2} value={f.summary} onChange={(v) => setF(i, (y) => { y.summary = v || undefined; })} /></Field>
+                  <Field label="Benefits (one per line, up to 3 show on results)">
+                    <TextArea rows={3} value={f.benefits.join('\n')} onChange={(v) => setF(i, (y) => { y.benefits = v.split('\n'); })} />
+                  </Field>
+                  <ImageField label="Image or GIF" folder="products/features" hint="Screenshots or short animated GIFs (under 10 MB) work best." value={f.mediaUrl} onChange={(v) => setF(i, (y) => { y.mediaUrl = v; })} />
+                  {f.mediaUrl && <Field label="Image description (for screen readers)"><TextInput value={f.mediaAlt} onChange={(v) => setF(i, (y) => { y.mediaAlt = v || undefined; })} /></Field>}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/** Tick which of a product's features an answer/rule highlights. */
+function FeatureChips({ product, value, onChange }: { product?: ProductSnapshot; value?: string[]; onChange: (ids: string[]) => void }) {
+  const features = (product?.features ?? []).filter((f) => f.name.trim());
+  if (!features.length) return null;
+  const selected = new Set(value ?? []);
+  return (
+    <div className="row small" style={{ flexWrap: 'wrap', gap: 6, flexBasis: '100%', paddingLeft: 12 }}>
+      <span className="muted">Highlight:</span>
+      {features.map((f) => (
+        <label key={f.id} className={`check pick-row ${selected.has(f.id) ? 'on' : ''}`} style={{ padding: '3px 8px' }}>
+          <input type="checkbox" checked={selected.has(f.id)} onChange={(e) => {
+            const next = new Set(selected);
+            if (e.target.checked) next.add(f.id); else next.delete(f.id);
+            onChange(features.map((x) => x.id).filter((id) => next.has(id)));
+          }} />
+          {f.name}
+        </label>
+      ))}
+    </div>
   );
 }
 

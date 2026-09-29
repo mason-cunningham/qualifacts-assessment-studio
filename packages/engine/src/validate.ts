@@ -105,6 +105,17 @@ export function validateDefinition(def: AssessmentDefinition): ValidationIssue[]
   for (const s of def.sections)
     if (s.productIds.some(missingProduct)) err(`Section "${s.name}" lists a product that isn't attached.`, { tab: 'solutions' });
 
+  // Feature pointers must exist on (one of) the recommended products; missing ones are skipped on results
+  const featureIds = new Map(def.products.map((p) => [p.id, new Set((p.features ?? []).map((f) => f.id))]));
+  const staleFeature = (pids: string[], fids: string[] | undefined) =>
+    !!fids?.length && fids.some((fid) => !pids.some((pid) => featureIds.get(pid)?.has(fid)));
+  for (const q of ordered)
+    for (const o of q.options)
+      if (o.recommend && staleFeature(o.recommend.productIds, o.recommend.featureIds))
+        warn(`"${o.label || 'A choice'}" highlights a feature its product no longer has.`, { tab: 'solutions' });
+  for (const r of def.recommendations.rules)
+    if (staleFeature([r.productId], r.featureIds)) warn('A recommendation rule highlights a feature its product no longer has.', { tab: 'solutions' });
+
   const lc = def.leadCapture;
   if (lc.position !== 'off') {
     if (lc.fields.length === 0) err('The lead form is on but has no fields.', { tab: 'lead' });

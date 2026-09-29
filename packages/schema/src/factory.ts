@@ -4,6 +4,7 @@ import {
   SCHEMA_VERSION,
   type AssessmentDefinition,
   type LeadField,
+  type ProductFeature,
   type Option,
   type Question,
   type QuestionType,
@@ -141,4 +142,34 @@ export function slugify(input: string): string {
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
     .slice(0, 80);
+}
+
+/**
+ * Tidy a product's feature sets (from the DB jsonb, the editor, or AI): drop unnamed ones,
+ * trim text, drop blank benefits, and give every feature a stable id.
+ */
+export function cleanFeatures(raw: unknown): ProductFeature[] {
+  if (!Array.isArray(raw)) return [];
+  const seen = new Set<string>();
+  const s = (v: unknown) => (typeof v === 'string' && v.trim() ? v.trim() : undefined);
+  const out: ProductFeature[] = [];
+  for (const f of raw) {
+    if (!f || typeof f !== 'object') continue;
+    const o = f as Record<string, unknown>;
+    const name = s(o.name);
+    if (!name) continue;
+    let id = s(o.id) ?? newId('f');
+    while (seen.has(id)) id = newId('f');
+    seen.add(id);
+    out.push({
+      id,
+      name,
+      solves: s(o.solves),
+      summary: s(o.summary),
+      benefits: (Array.isArray(o.benefits) ? o.benefits : []).map(s).filter((b): b is string => !!b),
+      mediaUrl: s(o.mediaUrl),
+      mediaAlt: s(o.mediaAlt),
+    });
+  }
+  return out;
 }

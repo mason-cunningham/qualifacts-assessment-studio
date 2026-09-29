@@ -205,6 +205,13 @@ export const SCHEMAS = {
                   "recommendRank": {
                     "type": "number",
                     "description": "Lower ranks sort first (0 for the weakest answer, 5 for a partial answer)"
+                  },
+                  "recommendFeatureIds": {
+                    "type": "array",
+                    "description": "IDs of the recommended product's features that solve this answer's gap (1–2); [] if none or the product lists no features",
+                    "items": {
+                      "type": "string"
+                    }
                   }
                 },
                 "additionalProperties": false,
@@ -216,7 +223,8 @@ export const SCHEMAS = {
                   "allowOtherText",
                   "recommendProductId",
                   "recommendBadge",
-                  "recommendRank"
+                  "recommendRank",
+                  "recommendFeatureIds"
                 ]
               }
             },
@@ -922,6 +930,13 @@ export const SCHEMAS = {
                   "recommendRank": {
                     "type": "number",
                     "description": "Lower ranks sort first (0 for the weakest answer, 5 for a partial answer)"
+                  },
+                  "recommendFeatureIds": {
+                    "type": "array",
+                    "description": "IDs of the recommended product's features that solve this answer's gap (1–2); [] if none or the product lists no features",
+                    "items": {
+                      "type": "string"
+                    }
                   }
                 },
                 "additionalProperties": false,
@@ -933,7 +948,8 @@ export const SCHEMAS = {
                   "allowOtherText",
                   "recommendProductId",
                   "recommendBadge",
-                  "recommendRank"
+                  "recommendRank",
+                  "recommendFeatureIds"
                 ]
               }
             },
@@ -1181,6 +1197,98 @@ export const SCHEMAS = {
       "productLine",
       "content",
       "summary"
+    ],
+    "description": "{$schema: \"https://json-schema.org/draft/2020-12/schema\"}"
+  },
+  "ProductExtract": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "type": "string"
+      },
+      "productLine": {
+        "type": "string",
+        "description": "\"\" if unclear"
+      },
+      "category": {
+        "type": "string",
+        "description": "e.g. \"Revenue Cycle\", \"Client Engagement\"; \"\" if unclear"
+      },
+      "tagline": {
+        "type": "string",
+        "description": "12 words or fewer"
+      },
+      "whatItDoes": {
+        "type": "string",
+        "description": "1–2 sentences"
+      },
+      "whyItMatters": {
+        "type": "string",
+        "description": "1–2 sentences on the outcome for the customer"
+      },
+      "benefits": {
+        "type": "array",
+        "description": "3–6 benefits, each 12 words or fewer",
+        "items": {
+          "type": "string"
+        }
+      },
+      "ctaLabel": {
+        "type": "string",
+        "description": "Short button label, e.g. \"See a demo\"; \"\" if none suggested"
+      },
+      "features": {
+        "type": "array",
+        "description": "3–10 distinct capabilities worth showing a customer",
+        "items": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "Feature name as the source calls it"
+            },
+            "solves": {
+              "type": "string",
+              "description": "The problem it solves, in the customer's words (one sentence)"
+            },
+            "summary": {
+              "type": "string",
+              "description": "What it does (1–2 sentences)"
+            },
+            "benefits": {
+              "type": "array",
+              "description": "Up to 3 short benefits",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "name",
+            "solves",
+            "summary",
+            "benefits"
+          ]
+        }
+      },
+      "sourceNotes": {
+        "type": "string",
+        "description": "One or two sentences for the creator on what the sources covered and any gaps"
+      }
+    },
+    "additionalProperties": false,
+    "required": [
+      "name",
+      "productLine",
+      "category",
+      "tagline",
+      "whatItDoes",
+      "whyItMatters",
+      "benefits",
+      "ctaLabel",
+      "features",
+      "sourceNotes"
     ],
     "description": "{$schema: \"https://json-schema.org/draft/2020-12/schema\"}"
   }

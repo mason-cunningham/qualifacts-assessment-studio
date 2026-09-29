@@ -119,6 +119,7 @@ export function buildSubmission(args: {
       name: r.product.name,
       badge: r.badge ?? null,
       rank: r.rank,
+      features: r.features.map((f) => f.name),
     })),
     ...args.attribution,
     started_at: args.startedAt ?? null,

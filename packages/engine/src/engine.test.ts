@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Answers, AssessmentDefinition } from '@qq/schema';
+import { cleanFeatures } from '@qq/schema';
 import { BUILT_IN_TEMPLATES } from '@qq/templates';
 import {
   buildSubmission,
@@ -247,6 +248,49 @@ describe('Payment Posting survey', () => {
     const seg = payload.answers!.find((x) => x.question_id === 'org_segment_type')!;
     expect(seg.answer_label).toBe('Other: Tribal health');
     expect(payload.answers!.find((x) => x.question_id === 'posting_interest')!.value).toBe(5);
+  });
+});
+
+describe('feature-level recommendations', () => {
+  // CES template: answers already recommend products; add features and point answers at them
+  const withFeatures = () => {
+    const def = structuredClone(tpl('ces-healthcheck'));
+    const q = def.questions.find((x) => x.options.some((o) => o.recommend?.productIds.length))!;
+    const opts = q.options.filter((o) => o.recommend?.productIds.length);
+    const pid = opts[0].recommend!.productIds[0];
+    const product = def.products.find((p) => p.id === pid)!;
+    product.features = [
+      { id: 'f_a', name: 'Alpha', benefits: [] },
+      { id: 'f_b', name: 'Beta', benefits: [], mediaUrl: 'https://x/beta.gif' },
+    ];
+    return { def, q, opts, pid };
+  };
+
+  it('returns only the features the chosen answer points to, skipping unknown ids', () => {
+    const { def, q, opts, pid } = withFeatures();
+    opts[0].recommend!.featureIds = ['f_b', 'f_missing', 'f_b'];
+    const r = computeResults(def, { [q.id]: { optionIds: [opts[0].id] } });
+    const rec = r.recommendations.find((x) => x.productId === pid)!;
+    expect(rec.features.map((f) => f.id)).toEqual(['f_b']);
+  });
+
+  it('falls back to no features (whole-product card) when the answer has no featureIds', () => {
+    const { def, q, opts, pid } = withFeatures();
+    const r = computeResults(def, { [q.id]: { optionIds: [opts[0].id] } });
+    expect(r.recommendations.find((x) => x.productId === pid)!.features).toEqual([]);
+  });
+
+  it('warns when an answer points to a feature the product no longer has', () => {
+    const { def, opts } = withFeatures();
+    opts[0].recommend!.featureIds = ['f_gone'];
+    expect(validateDefinition(def).some((i) => i.level === 'warning' && /no longer has/.test(i.message))).toBe(true);
+  });
+
+  it('cleanFeatures drops unnamed entries, trims, and assigns stable ids', () => {
+    const out = cleanFeatures([{ name: '  Alpha ', benefits: [' one ', ''] }, { name: '' }, 'junk', { id: 'f_x', name: 'Beta' }]);
+    expect(out.map((f) => [f.name, f.benefits])).toEqual([['Alpha', ['one']], ['Beta', []]]);
+    expect(out[0].id).toMatch(/^f_/);
+    expect(out[1].id).toBe('f_x');
   });
 });
 

@@ -13,7 +13,7 @@ import { contextBlocks, generateTask, SYSTEM_PROMPT } from './prompts';
 
 const opt = (label: string, points: number, extra: Partial<AiOption> = {}): AiOption => ({
   label, points, isGap: false, notApplicable: false, allowOtherText: false,
-  recommendProductId: '', recommendBadge: '', recommendRank: 0, ...extra,
+  recommendProductId: '', recommendBadge: '', recommendRank: 0, recommendFeatureIds: [], ...extra,
 });
 
 const q = (key: string, sectionKey: string, text: string, options: AiOption[], extra: Partial<AiQuestion> = {}): AiQuestion => ({
@@ -66,7 +66,7 @@ function baseDraft(overrides: Partial<AiDraft> = {}): AiDraft {
 
 describe('structured-output schemas', () => {
   // The API rejects schemas with more than 16 union-typed parameters (nullable = union).
-  const names = ['AiDraftSchema', 'AiPlanSchema', 'AiSectionQuestionsSchema', 'RewriteResultSchema', 'OptionsResultSchema', 'TierCopyResultSchema', 'ReviewResultSchema', 'KnowledgeExtractSchema'] as const;
+  const names = ['AiDraftSchema', 'AiPlanSchema', 'AiSectionQuestionsSchema', 'RewriteResultSchema', 'OptionsResultSchema', 'TierCopyResultSchema', 'ReviewResultSchema', 'KnowledgeExtractSchema', 'ProductExtractSchema'] as const;
   for (const n of names) {
     it(`${n} has no union-typed parameters and closes every object`, () => {
       const json = JSON.stringify(zodOutputFormat(S[n]).schema);
@@ -78,6 +78,18 @@ describe('structured-output schemas', () => {
       expect(json).not.toMatch(/"minimum"|"maximum"|"minLength"|"maxLength"/);
     });
   }
+});
+
+describe('feature mapping', () => {
+  it("keeps only the recommended product's feature ids", () => {
+    const withFeatures: ProductSnapshot[] = [{ ...products[0], features: [{ id: 'f_elig', name: 'Eligibility', benefits: [] }] }];
+    const draft = baseDraft();
+    draft.questions[0].options[2] = { ...draft.questions[0].options[2], recommendFeatureIds: ['f_elig', 'f_foreign', 'f_elig'] };
+    const { definition } = draftToDefinition(draft, withFeatures);
+    const rec = definition.questions.flatMap((x) => x.options).find((o) => o.recommend)!.recommend!;
+    expect(rec.featureIds).toEqual(['f_elig']);
+    expect(definition.products[0].features?.map((f) => f.id)).toEqual(['f_elig']);
+  });
 });
 
 describe('mergeStages', () => {
@@ -143,7 +155,7 @@ describe('normalize (forgiving parse of unconstrained replies)', () => {
     ], 's1');
     expect(S.AiSectionQuestionsSchema.safeParse(out).success).toBe(true);
     expect(out.questions[0]).toMatchObject({ sectionKey: 's1', type: 'multi', role: 'scored', required: true });
-    expect(out.questions[0].options).toEqual([{ label: 'Well', points: 3, isGap: false, notApplicable: false, allowOtherText: false, recommendProductId: '', recommendBadge: '', recommendRank: 0 }]);
+    expect(out.questions[0].options).toEqual([{ label: 'Well', points: 3, isGap: false, notApplicable: false, allowOtherText: false, recommendProductId: '', recommendBadge: '', recommendRank: 0, recommendFeatureIds: [] }]);
     expect(out.questions[1]).toMatchObject({ key: 'q2', type: 'rating', ratingMax: 5 });
     expect(normalizeSectionQuestions({ questions: [] }).questions).toEqual([]);
   });

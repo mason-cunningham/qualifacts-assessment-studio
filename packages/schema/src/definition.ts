@@ -32,6 +32,8 @@ export const RecommendSchema = z.object({
   badge: z.string().optional(),
   /** Lower ranks sort first. Ties broken by product priority. */
   rank: z.number().optional(),
+  /** Feature sets (ids from the product's `features`) to highlight on the results card */
+  featureIds: z.array(z.string()).optional(),
 });
 
 export const OptionSchema = z.object({
@@ -158,6 +160,7 @@ export const RecommendationRuleSchema = z.object({
   productId: z.string(),
   badge: z.string().optional(),
   rank: z.number().optional(),
+  featureIds: z.array(z.string()).optional(),
   when: RuleWhenSchema,
 });
 
@@ -253,6 +256,21 @@ export const ThemeSchema = z.object({
   ogImageUrl: z.string().optional(),
 });
 
+/** A specific capability of a product, highlighted on results when an answer maps to it. */
+export const ProductFeatureSchema = z.object({
+  /** Stable id ("f_xxxxxx") so answer mappings survive renames */
+  id: z.string(),
+  name: z.string(),
+  /** The problem it solves, in the customer's words */
+  solves: z.string().optional(),
+  /** What it does (1–2 sentences) */
+  summary: z.string().optional(),
+  benefits: z.array(z.string()).default([]),
+  /** Image or animated GIF */
+  mediaUrl: z.string().optional(),
+  mediaAlt: z.string().optional(),
+});
+
 export const ProductSnapshotSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -267,6 +285,8 @@ export const ProductSnapshotSchema = z.object({
   ctaUrl: z.string().optional(),
   /** Lower = more important. Orders recommendation cards within the same rank. */
   priority: z.number().optional(),
+  /** Optional feature sets; only the ones an answer maps to show on results */
+  features: z.array(ProductFeatureSchema).optional(),
 });
 
 export const AssessmentDefinitionSchema = z.object({
@@ -312,6 +332,7 @@ export type Intro = z.infer<typeof IntroSchema>;
 export type Theme = z.infer<typeof ThemeSchema>;
 export type Accent = (typeof ACCENTS)[number];
 export type ProductSnapshot = z.infer<typeof ProductSnapshotSchema>;
+export type ProductFeature = z.infer<typeof ProductFeatureSchema>;
 export type AssessmentDefinition = z.infer<typeof AssessmentDefinitionSchema>;
 
 export const isChoiceType = (t: QuestionType) => (CHOICE_TYPES as readonly string[]).includes(t);

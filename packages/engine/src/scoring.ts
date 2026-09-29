@@ -5,6 +5,7 @@ import type {
   Insight,
   InsightWhen,
   Option,
+  ProductFeature,
   ProductSnapshot,
   Question,
   RuleWhen,
@@ -62,6 +63,8 @@ export interface RecommendationResult {
   product: ProductSnapshot;
   badge?: string;
   rank: number;
+  /** Feature sets the triggering answers/rules point to (most urgent first). Empty → show the whole product. */
+  features: ProductFeature[];
 }
 
 export interface AssessmentResults {
@@ -311,11 +314,26 @@ export function computeRecommendations(
   if (!def.recommendations.enabled) return [];
   const products = new Map(def.products.map((p, i) => [p.id, { p, i }]));
   const best = new Map<string, { badge?: string; rank: number }>();
-  const consider = (productId: string, rank: number | undefined, badge: string | undefined) => {
+  /** Every feature pointer per product, with the rank of what triggered it */
+  const featureHits = new Map<string, { rank: number; seq: number; featureIds: string[] }[]>();
+  let seq = 0;
+  const consider = (productId: string, rank: number | undefined, badge: string | undefined, featureIds?: string[]) => {
     if (!products.has(productId)) return;
     const rk = rank ?? 100;
     const cur = best.get(productId);
     if (!cur || rk < cur.rank) best.set(productId, { rank: rk, badge });
+    if (featureIds?.length) {
+      const hits = featureHits.get(productId) ?? [];
+      hits.push({ rank: rk, seq: seq++, featureIds });
+      featureHits.set(productId, hits);
+    }
+  };
+  const matchedFeatures = (p: ProductSnapshot): ProductFeature[] => {
+    const byId = new Map((p.features ?? []).map((f) => [f.id, f]));
+    const ids = (featureHits.get(p.id) ?? [])
+      .sort((a, b) => a.rank - b.rank || a.seq - b.seq)
+      .flatMap((h) => h.featureIds);
+    return [...new Set(ids)].map((id) => byId.get(id)).filter((f): f is ProductFeature => !!f);
   };
 
   // Option-level recommendations (CES style)
@@ -325,19 +343,19 @@ export function computeRecommendations(
     if (!isAnswered(q, a)) continue;
     for (const o of selectedOptions(q, a)) {
       if (!o.recommend) continue;
-      for (const pid of o.recommend.productIds) consider(pid, o.recommend.rank, o.recommend.badge);
+      for (const pid of o.recommend.productIds) consider(pid, o.recommend.rank, o.recommend.badge, o.recommend.featureIds);
     }
   }
 
   // Rule-based recommendations
   for (const rule of def.recommendations.rules) {
-    if (ruleMatches(rule.when, def, answers, r)) consider(rule.productId, rule.rank, rule.badge);
+    if (ruleMatches(rule.when, def, answers, r)) consider(rule.productId, rule.rank, rule.badge, rule.featureIds);
   }
 
   const list = [...best.entries()]
     .map(([productId, v]) => {
       const { p, i } = products.get(productId)!;
-      return { productId, product: p, badge: v.badge, rank: v.rank, _order: i };
+      return { productId, product: p, badge: v.badge, rank: v.rank, features: matchedFeatures(p), _order: i };
     })
     .sort(
       (a, b) =>

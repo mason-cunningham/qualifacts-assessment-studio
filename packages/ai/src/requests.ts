@@ -2,7 +2,7 @@
 
 export type AiMode =
   | 'generate' | 'import' | 'generate_plan' | 'generate_section'
-  | 'extract_knowledge' | 'rewrite' | 'options' | 'tier_copy' | 'review';
+  | 'extract_knowledge' | 'extract_product' | 'rewrite' | 'options' | 'tier_copy' | 'review';
 
 export interface GenerateBrief {
   title: string;
@@ -81,6 +81,16 @@ export interface ExtractKnowledgeRequest {
   hint: string;
 }
 
+/** Fill a Solutions-library product (and its feature sets) from pitch decks, messaging guides, etc. */
+export interface ExtractProductRequest {
+  mode: 'extract_product';
+  files: StoredFile[];
+  attachments: TextAttachment[];
+  hint: string;
+  /** The product as currently edited, so existing features are updated rather than duplicated */
+  current?: { name: string; productLine?: string; features?: { name: string }[] };
+}
+
 export interface QuestionContext {
   assessmentTitle: string;
   audience: string;
@@ -120,6 +130,7 @@ export type AiRequest =
   | GeneratePlanRequest
   | GenerateSectionRequest
   | ExtractKnowledgeRequest
+  | ExtractProductRequest
   | RewriteRequest
   | OptionsRequest
   | TierCopyRequest
