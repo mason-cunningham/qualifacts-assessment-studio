@@ -10,7 +10,7 @@ import { displayName, useAuth } from '../lib/auth';
 import { duplicateAssessment } from '../lib/assessments';
 import { accessFor, canEditRow, canManageSharing } from '../lib/access';
 import { copyText, fmtRelative, publicUrl } from '../lib/format';
-import { teamLabel, type AssessmentRow, type AssessmentStatus, type Profile, type ShareRow, type StatsRow } from '../lib/types';
+import { TEAM_OPTIONS, teamLabel, type AssessmentRow, type Team, type AssessmentStatus, type Profile, type ShareRow, type StatsRow } from '../lib/types';
 
 type Filter = 'active' | 'mine' | 'team' | 'shared' | 'published' | 'draft' | 'archived' | 'all';
 
@@ -19,7 +19,7 @@ const FILTER_LABELS: Record<Filter, string> = {
 };
 
 export function DashboardPage() {
-  const { profile, canEdit, publicBaseUrl } = useAuth();
+  const { profile, canEdit, isAdmin, publicBaseUrl } = useAuth();
   const toast = useToast();
   const nav = useNavigate();
   const [rows, setRows] = useState<AssessmentRow[] | null>(null);
@@ -29,12 +29,14 @@ export function DashboardPage() {
   const [error, setError] = useState<unknown>(null);
   const [filter, setFilter] = useState<Filter>('active');
   const [q, setQ] = useState('');
+  /** Admins: narrow the cross-team list to one team ('' = all teams, 'none' = no team) */
+  const [teamFilter, setTeamFilter] = useState<Team | '' | 'none'>('');
   const [share, setShare] = useState<AssessmentRow | null>(null);
   const [access, setAccess] = useState<AssessmentRow | null>(null);
 
   const load = async () => {
     const [a, s, p, sh] = await Promise.all([
-      supabase.from(T.assessments).select('id,slug,title,internal_name,description,product_line,status,published_version_id,settings,is_template,closes_at,published_at,owner_id,team,created_by,updated_by,created_at,updated_at,draft_definition').order('updated_at', { ascending: false }),
+      supabase.from(T.assessments).select('id,slug,title,internal_name,description,product_line,status,published_version_id,settings,is_template,closes_at,published_at,owner_id,teams,created_by,updated_by,created_at,updated_at,draft_definition').order('updated_at', { ascending: false }),
       supabase.from(T.stats).select('*'),
       supabase.from(T.profiles).select('id,email,full_name'),
       profile ? supabase.from(T.shares).select('*').eq('user_id', profile.id) : Promise.resolve({ data: [] }),
@@ -58,7 +60,9 @@ export function DashboardPage() {
     return rows.filter((r) => {
       if (filter === 'active' && r.status === 'archived') return false;
       if (filter === 'mine' && r.owner_id !== profile?.id) return false;
-      if (filter === 'team' && (!profile?.team || r.team !== profile.team)) return false;
+      if (filter === 'team' && (!profile?.team || !(r.teams ?? []).includes(profile.team))) return false;
+      if (teamFilter === 'none' && (r.teams ?? []).length > 0) return false;
+      if (teamFilter && teamFilter !== 'none' && !(r.teams ?? []).includes(teamFilter)) return false;
       if (filter === 'shared' && !sharedWithMe.has(r.id)) return false;
       if (filter === 'published' && r.status !== 'published') return false;
       if (filter === 'draft' && r.status !== 'draft') return false;
@@ -66,7 +70,7 @@ export function DashboardPage() {
       if (term && !`${r.title} ${r.slug} ${r.internal_name ?? ''} ${r.product_line ?? ''}`.toLowerCase().includes(term)) return false;
       return true;
     });
-  }, [rows, filter, q, profile, sharedWithMe]);
+  }, [rows, filter, q, profile, sharedWithMe, teamFilter]);
 
   const totals = useMemo(() => {
     const all = [...stats.values()];
@@ -117,7 +121,16 @@ export function DashboardPage() {
               </button>
             ))}
           </div>
-          <input className="input" style={{ maxWidth: 280 }} placeholder="Search assessments…" value={q} onChange={(e) => setQ(e.target.value)} />
+          <div className="row" style={{ flexWrap: 'wrap' }}>
+            {isAdmin && (
+              <select className="select" style={{ width: 'auto' }} value={teamFilter} onChange={(e) => setTeamFilter(e.target.value as Team | '' | 'none')} aria-label="Filter by team">
+                <option value="">All teams</option>
+                {TEAM_OPTIONS.map(([k, label]) => <option key={k} value={k}>{label}</option>)}
+                <option value="none">No team</option>
+              </select>
+            )}
+            <input className="input" style={{ maxWidth: 280 }} placeholder="Search assessments…" value={q} onChange={(e) => setQ(e.target.value)} />
+          </div>
         </div>
 
         {error ? <ErrorBox error={error} /> : !rows ? <Loading /> : filtered.length === 0 ? (
@@ -138,13 +151,16 @@ export function DashboardPage() {
               const link = publicUrl(publicBaseUrl, r.slug);
               const level = accessFor(r, profile, myShares);
               const editable = canEditRow(level, profile);
-              const viaShare = r.owner_id !== profile?.id && r.team !== profile?.team ? sharedWithMe.get(r.id) : undefined;
+              const onMyTeam = !!profile?.team && (r.teams ?? []).includes(profile.team);
+              const viaShare = r.owner_id !== profile?.id && !onMyTeam ? sharedWithMe.get(r.id) : undefined;
+              const teams = r.teams ?? [];
               return (
                 <div className="a-card" key={r.id}>
                   <div className="row-between">
                     <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
                       <StatusPill status={r.status} />
-                      {teamLabel(r.team) && <span className="pill pill-neutral">{teamLabel(r.team)}</span>}
+                      {teams.slice(0, 2).map((t) => <span key={t} className="pill pill-neutral">{teamLabel(t)}</span>)}
+                      {teams.length > 2 && <span className="pill pill-neutral" title={teams.slice(2).map((t) => teamLabel(t)).join(', ')}>+{teams.length - 2}</span>}
                       {viaShare && <span className="pill pill-test">Shared · {viaShare.permission === 'edit' ? 'Can edit' : 'Can view'}</span>}
                     </div>
                     <span className="small muted">Edited {fmtRelative(r.updated_at)}</span>
@@ -200,7 +216,7 @@ export function DashboardPage() {
         <ShareAccessDialog
           row={access}
           onClose={() => { setAccess(null); load(); }}
-          onTeamChanged={(team) => setRows((cur) => cur?.map((x) => (x.id === access.id ? { ...x, team } : x)) ?? cur)}
+          onTeamsChanged={(teams) => setRows((cur) => cur?.map((x) => (x.id === access.id ? { ...x, teams } : x)) ?? cur)}
         />
       )}
     </>

@@ -62,7 +62,7 @@ export function LoginPage() {
         <img className="logo" src={qualifactsLogo} alt="Qualifacts" />
         <h1>{mode === 'signin' ? 'Sign in to Assessment Studio' : 'Create your account'}</h1>
         <p className="muted" style={{ marginTop: 0 }}>
-          {mode === 'signin' ? 'Build, publish, and track customer assessments.' : 'For Qualifacts team members. An admin will approve your access.'}
+          {mode === 'signin' ? 'Build, publish, and track customer assessments.' : 'For Qualifacts team members. Use your @qualifacts.com email and you get access right away.'}
         </p>
         {mode === 'signup' && (
           <div className="field">

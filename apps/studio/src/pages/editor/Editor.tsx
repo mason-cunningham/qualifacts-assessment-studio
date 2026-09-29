@@ -312,7 +312,7 @@ export function EditorPage() {
         <ShareAccessDialog
           row={row}
           onClose={() => setSharing(false)}
-          onTeamChanged={(team) => setRow((r) => (r ? { ...r, team } : r))}
+          onTeamsChanged={(teams) => setRow((r) => (r ? { ...r, teams } : r))}
         />
       )}
 

@@ -10,16 +10,27 @@ export function PendingPage() {
     <div className="auth-wrap">
       <div className="auth-card">
         <img className="logo" src={qualifactsLogo} alt="Qualifacts" />
-        <h1>Awaiting approval</h1>
-        <p className="muted">
-          Thanks{profile?.full_name ? `, ${profile.full_name.split(' ')[0]}` : ''}! Your account ({profile?.email}) was created.
-          A Studio admin needs to approve it before you can build assessments.
-        </p>
-        {!profile?.team && (
-          <div className="field">
-            <label>While you wait, pick your team</label>
-            <TeamPicker />
-          </div>
+        {profile?.deactivated_at ? (
+          <>
+            <h1>Your access was turned off</h1>
+            <p className="muted">
+              A Studio admin deactivated {profile.email}. If you think that's a mistake, ask an admin to reactivate you on the Users page.
+            </p>
+          </>
+        ) : (
+          <>
+            <h1>Almost there</h1>
+            <p className="muted">
+              Thanks{profile?.full_name ? `, ${profile.full_name.split(' ')[0]}` : ''}! Your account ({profile?.email}) was created and
+              should be ready in a moment. Click <b>Check again</b>, or ask a Studio admin if this doesn't go away.
+            </p>
+            {!profile?.team && (
+              <div className="field">
+                <label>Pick your team</label>
+                <TeamPicker />
+              </div>
+            )}
+          </>
         )}
         <div className="btn-row">
           <button className="btn btn-primary" disabled={checking} onClick={async () => { setChecking(true); await refreshProfile(); setChecking(false); }}>

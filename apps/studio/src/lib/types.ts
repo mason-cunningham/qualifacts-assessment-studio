@@ -29,6 +29,8 @@ export interface Profile {
   role: Role;
   is_active: boolean;
   team: Team | null;
+  /** Set when an admin deactivates the account */
+  deactivated_at?: string | null;
   created_at: string;
 }
 
@@ -65,7 +67,8 @@ export interface AssessmentRow {
   closes_at: string | null;
   published_at: string | null;
   owner_id: string | null;
-  team: Team | null;
+  /** Teams with access (the creator's team is added on creation). Empty + owner without a team = legacy, visible to all. */
+  teams: Team[];
   created_by: string | null;
   updated_by: string | null;
   created_at: string;

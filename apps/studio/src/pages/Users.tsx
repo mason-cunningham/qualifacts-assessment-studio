@@ -4,7 +4,7 @@ import { Loading, Modal, TeamSelect, useToast } from '../components/ui';
 import { supabase, T, errorMessage } from '../lib/supabase';
 import { displayName, useAuth } from '../lib/auth';
 import { fmtDate } from '../lib/format';
-import { teamLabel, type AiRequestRow, type Profile, type Role } from '../lib/types';
+import { type AiRequestRow, type Profile, type Role } from '../lib/types';
 
 // Claude Opus 5 list pricing (USD per million tokens). Cache reads cost less, so this is an upper bound.
 const PRICE_IN = 5;
@@ -98,8 +98,45 @@ export function UsersPage() {
     }
   };
 
-  const pending = (rows ?? []).filter((r) => !r.is_active);
   const active = (rows ?? []).filter((r) => r.is_active);
+  const inactive = (rows ?? []).filter((r) => !r.is_active);
+
+  const changeRole = (p: Profile, role: Role) => {
+    if (role === p.role) return;
+    if (role === 'admin' && !window.confirm(`Make ${displayName(p)} an admin? Admins can see and manage every assessment across all teams, and manage all users.`)) return;
+    const label = role === 'admin' ? 'an admin' : role === 'editor' ? 'an editor' : 'a viewer';
+    patch(p, { role }, `${displayName(p)} is now ${label}`);
+  };
+
+  const personRow = (p: Profile) => (
+    <tr key={p.id} style={{ opacity: p.is_active ? 1 : 0.6 }}>
+      <td>
+        <b>{displayName(p)}</b>{p.id === me?.id && <span className="pill pill-neutral" style={{ marginLeft: 6 }}>You</span>}
+        <div className="small muted">{p.email}</div>
+      </td>
+      <td>
+        <select className="select input-sm" style={{ width: 120 }} value={p.role} disabled={p.id === me?.id || !p.is_active}
+          onChange={(e) => changeRole(p, e.target.value as Role)}>
+          <option value="admin">Admin</option>
+          <option value="editor">Editor</option>
+          <option value="viewer">Viewer</option>
+        </select>
+      </td>
+      <td>
+        <TeamSelect className="select input-sm" placeholder="No team" value={p.team}
+          onChange={(team) => team && patch(p, { team }, 'Team updated')} />
+      </td>
+      <td className="small muted">{fmtDate(p.created_at)}</td>
+      <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+        {p.is_active && <button className="btn btn-ghost btn-sm" onClick={() => { setResetFor(p); setTempPw(randomPassword()); }}>Set temporary password</button>}
+        {p.id !== me?.id && (p.is_active ? (
+          <button className="btn btn-ghost btn-sm" onClick={() => window.confirm(`Remove ${displayName(p)}'s access? They won't be able to sign in to Studio.`) && patch(p, { is_active: false, deactivated_at: new Date().toISOString() }, 'Access removed')}>Deactivate</button>
+        ) : (
+          <button className="btn btn-secondary btn-sm" onClick={() => patch(p, { is_active: true, deactivated_at: null }, `${displayName(p)} can sign in again`)}>Reactivate</button>
+        ))}
+      </td>
+    </tr>
+  );
 
   return (
     <>
@@ -107,61 +144,30 @@ export function UsersPage() {
       <div className="s-page">
         {!rows ? <Loading /> : (
           <>
-            {pending.length > 0 && (
-              <div className="card" style={{ borderColor: 'var(--amber)' }}>
-                <div className="card-title">Waiting for approval ({pending.length})</div>
-                <div className="card-sub">Only approve people you recognize. Anyone can sign up with a @qualifacts.com address, and email isn't verified yet.</div>
-                <table className="table">
-                  <tbody>
-                    {pending.map((p) => (
-                      <tr key={p.id}>
-                        <td><b>{displayName(p)}</b><div className="small muted">{p.email}</div></td>
-                        <td className="small muted">{teamLabel(p.team) ?? 'No team yet'}</td>
-                        <td className="small muted">Signed up {fmtDate(p.created_at)}</td>
-                        <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
-                          <button className="btn btn-primary btn-sm" onClick={() => patch(p, { is_active: true, role: 'editor' }, `${displayName(p)} approved as editor`)}>Approve as editor</button>{' '}
-                          <button className="btn btn-secondary btn-sm" onClick={() => patch(p, { is_active: true, role: 'viewer' }, `${displayName(p)} approved as viewer`)}>Approve as viewer</button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+            <div className="card">
+              <div className="card-title">Roles</div>
+              <div className="grid grid-3" style={{ marginTop: 10 }}>
+                <div className="subtle-box" style={{ padding: '12px 14px' }}><b style={{ color: 'var(--navy)' }}>Admin</b><div className="small muted">Sees and manages every assessment across all teams, manages users and roles, and can delete.</div></div>
+                <div className="subtle-box" style={{ padding: '12px 14px' }}><b style={{ color: 'var(--navy)' }}>Editor</b><div className="small muted">Creates, edits, publishes and shares assessments for their teams and anything shared with them. New sign-ups start here.</div></div>
+                <div className="subtle-box" style={{ padding: '12px 14px' }}><b style={{ color: 'var(--navy)' }}>Viewer</b><div className="small muted">Sees their teams' assessments and anything shared with them, including results and lead exports. Can't edit.</div></div>
               </div>
-            )}
+              <p className="small muted" style={{ margin: '12px 0 0' }}>Anyone who signs up with a @qualifacts.com email gets Editor access right away. Deactivate anyone who shouldn't have access.</p>
+            </div>
             <AiUsageCard people={rows} />
             <div className="card">
               <div className="card-title">People ({active.length})</div>
-              <div className="card-sub"><b>Admins</b> see everything, manage users and can delete. <b>Editors</b> create, edit and publish. <b>Viewers</b> see assessments and responses. Everyone sees their <b>team's</b> assessments plus anything shared with them.</div>
               <table className="table">
                 <thead><tr><th>Name</th><th>Role</th><th>Team</th><th>Joined</th><th /></tr></thead>
-                <tbody>
-                  {active.map((p) => (
-                    <tr key={p.id}>
-                      <td><b>{displayName(p)}</b>{p.id === me?.id && <span className="pill pill-neutral" style={{ marginLeft: 6 }}>You</span>}<div className="small muted">{p.email}</div></td>
-                      <td>
-                        <select className="select input-sm" style={{ width: 120 }} value={p.role} disabled={p.id === me?.id}
-                          onChange={(e) => patch(p, { role: e.target.value as Role }, 'Role updated')}>
-                          <option value="admin">Admin</option>
-                          <option value="editor">Editor</option>
-                          <option value="viewer">Viewer</option>
-                        </select>
-                      </td>
-                      <td>
-                        <TeamSelect className="select input-sm" placeholder="No team" value={p.team}
-                          onChange={(team) => team && patch(p, { team }, 'Team updated')} />
-                      </td>
-                      <td className="small muted">{fmtDate(p.created_at)}</td>
-                      <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
-                        <button className="btn btn-ghost btn-sm" onClick={() => { setResetFor(p); setTempPw(randomPassword()); }}>Set temporary password</button>
-                        {p.id !== me?.id && (
-                          <button className="btn btn-ghost btn-sm" onClick={() => window.confirm(`Remove ${displayName(p)}'s access?`) && patch(p, { is_active: false }, 'Access removed')}>Deactivate</button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
+                <tbody>{active.map(personRow)}</tbody>
               </table>
             </div>
+            {inactive.length > 0 && (
+              <div className="card">
+                <div className="card-title">Deactivated ({inactive.length})</div>
+                <div className="card-sub">These people can't sign in to Studio.</div>
+                <table className="table"><tbody>{inactive.map(personRow)}</tbody></table>
+              </div>
+            )}
           </>
         )}
       </div>
