@@ -2,6 +2,7 @@ import {
   AI_LIMITS,
   AiDraftSchema,
   mergeStages,
+  normalizeDraft,
   sectionQuestionsFromDraft,
   type AiDraft,
   type AiQuestion,
@@ -103,11 +104,13 @@ export async function generateDraft(
   await Promise.all(Array.from({ length: Math.min(AI_LIMITS.sectionConcurrency, total) }, worker));
 
   // 3. Merge + validate
-  const merged = mergeStages(plan, bySection);
+  const merged = normalizeDraft(mergeStages(plan, bySection));
   const parsed = AiDraftSchema.safeParse(merged);
   if (!parsed.success) {
-    const path = parsed.error.issues[0]?.path.join('.');
-    throw new AiError(`The AI returned an unexpected format${path ? ` (${path})` : ''}. Please try again.`);
+    const issue = parsed.error.issues[0];
+    console.error('[ai] merged draft failed validation', parsed.error.issues, merged);
+    const detail = issue ? `${issue.path.map(String).join('.')}: ${issue.message}` : '';
+    throw new AiError(`The AI returned an unexpected format${detail ? ` (${detail})` : ''}. Please try again.`);
   }
   if (!parsed.data.questions.length) throw new AiError('The AI didn\'t write any questions. Please try again.');
   return { draft: parsed.data, requestId: planRes.requestId };

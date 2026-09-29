@@ -5,6 +5,7 @@ import type { ProductSnapshot } from '@qq/schema';
 import { draftToDefinition, summarizeDefinition } from './mapper';
 import { extractJsonObject } from './json';
 import { mergeStages, sectionQuestionsFromDraft } from './stages';
+import { normalizeDraft, normalizePlan, normalizeSectionQuestions } from './normalize';
 import type { AiPlan } from './schemas';
 import * as S from './schemas';
 import { AiDraftSchema, type AiDraft, type AiOption, type AiQuestion } from './schemas';
@@ -106,6 +107,49 @@ describe('mergeStages', () => {
   it('pulls one section from a previous draft for revisions', () => {
     expect(sectionQuestionsFromDraft(draft, 's2').map((x) => x.key)).toEqual(['q2']);
     expect(sectionQuestionsFromDraft(null, 's1')).toEqual([]);
+  });
+});
+
+describe('normalize (forgiving parse of unconstrained replies)', () => {
+  it('leaves a clean draft unchanged', () => {
+    expect(normalizeDraft(baseDraft())).toEqual(baseDraft());
+  });
+
+  it('repairs casing, string numbers, missing fields and wrappers in a plan', () => {
+    const messy = {
+      plan: {
+        title: 'RCM Check',
+        scoringMethod: 'Points',
+        tierBasis: 'PERCENT',
+        sections: [{ name: 'Front end', productIds: 'abc', questionCount: '3', brief: 'Eligibility' }],
+        tiers: [{ min: '80', max: '100', label: 'Strong', color: 'Dark Magenta' }, { min: 0, max: 79, label: 'Weak', color: 'purple' }],
+        insights: [{ when: 'Always', body: 'Focus.' }],
+        leadCapture: { position: 'before results', fieldKeys: ['First Name', 'work email', 'bogus'] },
+      },
+    };
+    const plan = normalizePlan(messy);
+    expect(S.AiPlanSchema.safeParse(plan).success).toBe(true);
+    expect(plan.scoringMethod).toBe('points');
+    expect(plan.sections[0]).toMatchObject({ key: 's1', productIds: ['abc'], questionCount: 3, questionBrief: 'Eligibility', showInResults: true });
+    expect(plan.tiers.map((t) => t.color)).toEqual(['darkMagenta', 'darkMagenta']);
+    expect(plan.tiers[0].min).toBe(80);
+    expect(plan.leadCapture).toMatchObject({ position: 'beforeResults', fieldKeys: ['first_name', 'email'] });
+  });
+
+  it('accepts a bare question array and fixes question/option shape', () => {
+    const out = normalizeSectionQuestions([
+      { key: 's1-q1', type: 'Multiple Choice', text: 'How?', options: [{ label: 'Well', points: '3', isGap: 'false' }, { label: '' }] },
+      { text: 'Rate it', type: 'Likert', ratingMax: '5' },
+    ], 's1');
+    expect(S.AiSectionQuestionsSchema.safeParse(out).success).toBe(true);
+    expect(out.questions[0]).toMatchObject({ sectionKey: 's1', type: 'multi', role: 'scored', required: true });
+    expect(out.questions[0].options).toEqual([{ label: 'Well', points: 3, isGap: false, notApplicable: false, allowOtherText: false, recommendProductId: '', recommendBadge: '', recommendRank: 0 }]);
+    expect(out.questions[1]).toMatchObject({ key: 'q2', type: 'rating', ratingMax: 5 });
+    expect(normalizeSectionQuestions({ questions: [] }).questions).toEqual([]);
+  });
+
+  it('turns an empty reply into a valid (empty) draft instead of throwing', () => {
+    expect(AiDraftSchema.safeParse(normalizeDraft(null)).success).toBe(true);
   });
 });
 

@@ -7,6 +7,9 @@ import {
   ReviewResultSchema,
   RewriteResultSchema,
   TierCopyResultSchema,
+  normalizeDraft,
+  normalizePlan,
+  normalizeSectionQuestions,
   type AiDraft,
   type AiEvent,
   type AiPlan,
@@ -53,6 +56,24 @@ const SCHEMA = {
   tier_copy: TierCopyResultSchema,
   review: ReviewResultSchema,
 } as const;
+
+/**
+ * Generation replies aren't constrained-decoded, so repair their shape (casing, types,
+ * missing fields) before the strict check. Constrained modes are already exact.
+ */
+const NORMALIZE: Partial<Record<AiRequest['mode'], (raw: unknown, req: AiRequest) => unknown>> = {
+  generate: (raw) => normalizeDraft(raw),
+  import: (raw) => normalizeDraft(raw),
+  generate_plan: (raw) => normalizePlan(raw),
+  generate_section: (raw, req) => normalizeSectionQuestions(raw, (req as GenerateSectionRequest).sectionKey),
+};
+
+/** "questions.3.options: expected array, received string" */
+function describeIssue(issue: { path: PropertyKey[]; message: string } | undefined): string {
+  if (!issue) return '';
+  const path = issue.path.map(String).join('.');
+  return path ? `${path}: ${issue.message}` : issue.message;
+}
 
 export interface AiRunResult<T> {
   data: T;
@@ -123,10 +144,12 @@ export async function runAi<R extends AiRequest>(
   }
 
   if (!final) throw new AiError('The AI response ended early (the request may have timed out). Try again with fewer questions or less context.');
-  const parsed = SCHEMA[req.mode].safeParse(final.data);
+  const normalize = NORMALIZE[req.mode];
+  const parsed = SCHEMA[req.mode].safeParse(normalize ? normalize(final.data, req) : final.data);
   if (!parsed.success) {
-    const path = parsed.error.issues[0]?.path.join('.');
-    throw new AiError(`The AI returned an unexpected format${path ? ` (${path})` : ''}. Please try again.`);
+    console.error(`[ai] ${req.mode} reply failed validation`, parsed.error.issues, final.data);
+    const detail = describeIssue(parsed.error.issues[0]);
+    throw new AiError(`The AI returned an unexpected format${detail ? ` (${detail})` : ''}. Please try again.`);
   }
   return { data: parsed.data as ResultFor<R>, requestId: final.requestId, usage: final.usage };
 }
