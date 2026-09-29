@@ -176,7 +176,7 @@ export const SCHEMAS = {
                 "properties": {
                   "label": {
                     "type": "string",
-                    "description": "Answer text shown to the respondent"
+                    "description": "Answer text shown to the respondent: one short, clear situation (ideally 40–90 characters, max 110)"
                   },
                   "points": {
                     "type": "number",
@@ -893,7 +893,7 @@ export const SCHEMAS = {
                 "properties": {
                   "label": {
                     "type": "string",
-                    "description": "Answer text shown to the respondent"
+                    "description": "Answer text shown to the respondent: one short, clear situation (ideally 40–90 characters, max 110)"
                   },
                   "points": {
                     "type": "number",

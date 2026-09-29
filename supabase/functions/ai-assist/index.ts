@@ -17,7 +17,13 @@ Qualifacts' marketing, product, and customer-success teams use you to build shor
 
 How good assessments are built (learned from Qualifacts' best-performing ones):
 - One idea per question, written in plain operational language a BH operations or finance leader uses. No vendor jargon, and never leading questions that telegraph the "right" answer.
-- 3\u20135 mutually exclusive answer choices ordered from strongest practice to weakest, each describing a concrete, recognizable situation ("We verify coverage 3\u20135 days out, with time to act on exceptions") rather than vague ratings.
+- Answer choices:
+  - 3\u20135 mutually exclusive choices, ordered from strongest practice to weakest.
+  - One recognizable situation per choice: a single clause, optionally followed by one short consequence after a dash or semicolon. No lists, no "and/or" chains, no stacked qualifiers.
+  - Keep them short: aim for 40\u201390 characters and never exceed 110. Choices in the same question are about the same length and use parallel wording, so none stands out as the "right" answer.
+  - Use the plain words a respondent would say. No jargon, no product names, and don't restate the question.
+  - Keep it simple when the question allows: Yes / No / Not sure, a frequency scale (Always \u2192 Never), counts or ranges (e.g. percent bands), or a rating. Write descriptive situations only when the difference between practices is the point of the question.
+  - Put any needed explanation in the question's help text, not in the choices.
 - Group questions into 3\u20137 sections that map to how the function actually works; each section should be solvable by one or more of the provided products when products are provided.
 - Scoring:
   - "points": every scored choice gets points (e.g. 3/2/1 or 10/5/0). Tier thresholds are based on percent unless the brief asks otherwise.
@@ -176,6 +182,7 @@ Rules for this section:
 - Write exactly ${s?.questionCount ?? "the planned number of"} questions covering: ${s?.questionBrief ?? "the section topic"}
 - ${opts.importMode ? "Convert the listed source questions faithfully (tidy wording only), in the source's order, and add answer choices, points and recommendations where the source lacks them." : "Stay inside this section's scope; the other sections are written separately, so never duplicate their topics."}
 - Every question's sectionKey is "${sectionKey}", and every key starts with "${sectionKey}-" (e.g. "${sectionKey}-q1").
+- Answer choices are short and clear: one situation each, ideally 40\u201390 characters and never over 110, parallel in length and wording. Use simple scales (Yes/No, frequency, ranges) wherever they fit.
 - Branching (showIfQuestionKey) may only point to an EARLIER question in this same section.
 - Follow the plan's scoringMethod ("${p.scoringMethod ?? "points"}").
 - Recommend only this section's products: ${s?.productIds?.length ? s.productIds.join(", ") : 'none (leave recommendProductId "")'}.`
@@ -218,7 +225,7 @@ function optionsTask(req) {
   const scoring = req.scoringMethod === "points" ? "Give each choice points from strongest (highest) to weakest (lowest), e.g. 3/2/1; set isGap on the weak ones." : req.scoringMethod === "gaps" ? "Set points to 0 and mark isGap true on choices that reveal a gap." : "Set points to 0 and isGap false (this is an unscored survey).";
   return `${questionText(req)}
 
-Suggest 3\u20135 mutually exclusive answer choices ordered from strongest to weakest practice, each describing a concrete, recognizable situation. Add a "Not applicable" choice with notApplicable true only if some respondents genuinely can't answer. ${scoring}`;
+Suggest 3\u20135 mutually exclusive answer choices ordered from strongest to weakest practice. Each is one short, recognizable situation (ideally 40\u201390 characters, never over 110), parallel in length and wording; if a simple scale (Yes/No, frequency, ranges) answers the question, use it. Add a "Not applicable" choice with notApplicable true only if some respondents genuinely can't answer. ${scoring}`;
 }
 function tierCopyTask(req) {
   return `Assessment: ${req.assessmentTitle}
@@ -443,7 +450,7 @@ var SCHEMAS = {
                 "properties": {
                   "label": {
                     "type": "string",
-                    "description": "Answer text shown to the respondent"
+                    "description": "Answer text shown to the respondent: one short, clear situation (ideally 40\u201390 characters, max 110)"
                   },
                   "points": {
                     "type": "number",
@@ -1160,7 +1167,7 @@ var SCHEMAS = {
                 "properties": {
                   "label": {
                     "type": "string",
-                    "description": "Answer text shown to the respondent"
+                    "description": "Answer text shown to the respondent: one short, clear situation (ideally 40\u201390 characters, max 110)"
                   },
                   "points": {
                     "type": "number",

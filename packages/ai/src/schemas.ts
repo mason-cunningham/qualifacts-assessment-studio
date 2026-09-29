@@ -25,7 +25,7 @@ export const AI_ROLES = ['scored', 'gate', 'segment', 'info'] as const;
 export const AI_LEAD_KEYS = ['first_name', 'last_name', 'email', 'organization', 'job_title', 'phone', 'state'] as const;
 
 export const AiOptionSchema = z.object({
-  label: z.string().describe('Answer text shown to the respondent'),
+  label: z.string().describe('Answer text shown to the respondent: one short, clear situation (ideally 40–90 characters, max 110)'),
   points: z.number().describe('Points for this answer when scoringMethod is "points"; 0 otherwise'),
   isGap: z.boolean().describe('True when this answer reveals an operational gap'),
   notApplicable: z.boolean().describe('On a gate question: marks the section not applicable. On a scored question: excludes it from scoring'),

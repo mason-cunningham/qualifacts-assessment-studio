@@ -250,6 +250,27 @@ describe('Payment Posting survey', () => {
   });
 });
 
+describe('long answer choice warning', () => {
+  const long = (def: AssessmentDefinition, label: string): AssessmentDefinition => ({
+    ...def,
+    questions: def.questions.map((q, i) => (i === 0 ? { ...q, options: q.options.map((o, oi) => (oi === 1 ? { ...o, label } : o)) } : q)),
+  });
+  const longWarnings = (def: AssessmentDefinition) => validateDefinition(def).filter((i) => / is long \(/.test(i.message));
+
+  it('stays quiet for built-in templates and choices at the limit', () => {
+    const def = tpl('eligibility');
+    expect(longWarnings(def)).toEqual([]);
+    expect(longWarnings(long(def, 'x'.repeat(110)))).toEqual([]);
+  });
+  it('warns (without blocking) when a choice is over 110 characters', () => {
+    const def = long(tpl('eligibility'), 'x'.repeat(148));
+    const w = longWarnings(def);
+    expect(w).toHaveLength(1);
+    expect(w[0]).toMatchObject({ level: 'warning', target: { tab: 'content', id: def.questions[0].id } });
+    expect(w[0].message).toContain('148 characters');
+  });
+});
+
 describe('general engine behavior', () => {
   it('weightedSections averages section % by weight', () => {
     const def = tpl('eligibility');

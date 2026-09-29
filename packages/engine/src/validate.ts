@@ -10,6 +10,9 @@ export interface ValidationIssue {
 
 const URL_RE = /^(https?:\/\/|mailto:)/i;
 
+/** Answer choices longer than this get a (non-blocking) warning. Keep in sync with the AI prompt rules. */
+export const MAX_CHOICE_CHARS = 110;
+
 /** Pre-publish checklist. Errors block publishing; warnings don't. */
 export function validateDefinition(def: AssessmentDefinition): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
@@ -46,6 +49,8 @@ export function validateDefinition(def: AssessmentDefinition): ValidationIssue[]
       const optIds = new Set<string>();
       q.options.forEach((o, oi) => {
         if (!o.label.trim()) err(`Q${n}, choice ${oi + 1} has no label.`, t);
+        else if (o.label.trim().length > MAX_CHOICE_CHARS)
+          warn(`Q${n}, choice ${oi + 1} is long (${o.label.trim().length} characters). Shorter choices are easier to answer.`, t);
         if (optIds.has(o.id)) err(`Q${n} has duplicate choice ids.`, t);
         optIds.add(o.id);
       });
