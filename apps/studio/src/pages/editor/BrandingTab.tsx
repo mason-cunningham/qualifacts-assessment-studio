@@ -13,7 +13,7 @@ export function BrandingTab({ def, update, readOnly }: EditorProps) {
   const t = def.theme;
   return (
     <fieldset disabled={readOnly} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
-      <div className="card">
+      <div className="card" data-ai-anchor="theme">
         <div className="card-title">Brand</div>
         <div className="card-sub">Assessments always use the Qualifacts palette and Ekster typeface. Pick the accent for buttons and progress.</div>
         <Field label="Accent color">

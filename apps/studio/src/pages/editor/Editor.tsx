@@ -197,6 +197,43 @@ export function EditorPage() {
 
   const hasUnpublishedChanges = !!row.published_version_id && liveJson !== null && liveJson !== comparable(def);
   const link = publicUrl(publicBaseUrl, row.slug);
+  /** AI assistant "Show": switch tab, scroll to and flash the field's section, and move the preview there. */
+  const showTarget = (target: string) => {
+    const [head, id] = target.split('/');
+    const tabFor: Record<string, Tab> = {
+      intro: 'content', questions: 'content', sections: 'content', scoring: 'scoring', insights: 'scoring',
+      results: 'results', leadCapture: 'lead', theme: 'branding', products: 'solutions', recommendations: 'solutions',
+    };
+    setTab(tabFor[head] ?? 'content');
+    let anchor = head === 'scoring' && (id === 'tiers' || id === 'sectionTiers') ? 'tiers' : head === 'sections' ? 'questions' : head;
+    if (head === 'questions' && id) {
+      if (def.questions.some((q) => q.id === id)) {
+        anchor = `q:${id}`;
+        setOpenQuestion(id);
+        setJump({ screen: 'questions', nonce: Date.now(), questionId: id });
+      } else {
+        anchor = 'questions';
+        toast.ok("That question isn't in the assessment anymore.");
+      }
+    } else if (head === 'intro') {
+      setJump({ screen: 'intro', nonce: Date.now(), answers: {} });
+    } else if (head === 'results' || head === 'insights' || head === 'scoring') {
+      setJump({ screen: 'results', nonce: Date.now(), answers: sampleAnswers(def, 'random') });
+    } else if (head === 'leadCapture' && def.leadCapture.position === 'beforeResults') {
+      setJump({ screen: 'lead', nonce: Date.now() });
+    }
+    // Wait for the tab to render, then bring the section into view and highlight it
+    window.setTimeout(() => {
+      const el = document.querySelector(`[data-ai-anchor="${anchor}"]`) ?? document.querySelector(`[data-ai-anchor="${head}"]`);
+      if (!el) return;
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.classList.remove('ai-flash');
+      void (el as HTMLElement).offsetWidth; // restart the animation if clicked twice
+      el.classList.add('ai-flash');
+      window.setTimeout(() => el.classList.remove('ai-flash'), 1800);
+    }, 120);
+  };
+
   const saveStateLabel = (
     <span className={`save-state ${saveState === 'error' || saveState === 'conflict' ? 'err' : ''}`}>
       {!canEdit ? 'View only' : { saved: 'All changes saved', dirty: 'Unsaved changes…', saving: 'Saving…', error: 'Save failed. Retrying on next change', conflict: 'Edited elsewhere. Reload to continue' }[saveState]}
@@ -316,7 +353,7 @@ export function EditorPage() {
           update={update}
           openQuestion={tab === 'content' ? openQuestion : null}
           status={row.status}
-          onJump={(t, questionId) => { setTab(t); if (questionId) setOpenQuestion(questionId); }}
+          onShow={showTarget}
         />
       )}
 

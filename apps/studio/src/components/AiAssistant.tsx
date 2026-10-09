@@ -16,8 +16,6 @@ import { useToast } from './ui';
 // and only reach a live assessment when it's published.
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type EditorTab = 'content' | 'scoring' | 'results' | 'solutions' | 'lead' | 'branding' | 'settings';
-
 const EXAMPLES = [
   'Shorten the answer choices in the first section',
   'Add the attached screenshot to question 2',
@@ -32,24 +30,39 @@ const hash = (s: string) => {
   return h;
 };
 
-/** Which tab (and question) a change lives on, for "Show in editor" */
-function locate(target: string): { tab: EditorTab; questionId?: string } {
-  const [head, id] = target.split('/');
-  if (head === 'questions') return { tab: 'content', questionId: id };
-  if (head === 'scoring') return { tab: 'scoring' };
-  if (head === 'results' || head === 'insights') return { tab: 'results' };
-  if (head === 'leadCapture') return { tab: 'lead' };
-  if (head === 'theme') return { tab: 'branding' };
-  if (head === 'products' || head === 'recommendations') return { tab: 'solutions' };
-  return { tab: 'content' };
+const isImageUrl = (v: unknown) => typeof v === 'string' && /^https?:\/\/.+\.(png|jpe?g|gif|webp|svg)(\?.*)?$/i.test(v);
+
+const PREVIEW_CHARS = 220;
+
+/** Long text starts collapsed with "Show more", so the full change can be checked before applying. */
+function LongText({ text }: { text: string }) {
+  const [expanded, setExpanded] = useState(false);
+  if (text.length <= PREVIEW_CHARS) return <span>{text}</span>;
+  // Cut at a word boundary
+  const cut = text.slice(0, PREVIEW_CHARS).replace(/\s+\S*$/, '');
+  return (
+    <span>
+      {expanded ? text : `${cut}…`}{' '}
+      <button type="button" className="ai-more" aria-expanded={expanded} onClick={() => setExpanded((x) => !x)}>
+        {expanded ? 'Show less' : 'Show more'}
+      </button>
+    </span>
+  );
 }
 
-const isImageUrl = (v: unknown) => typeof v === 'string' && /^https?:\/\/.+\.(png|jpe?g|gif|webp|svg)(\?.*)?$/i.test(v);
+/** A change's proposed value, decoded from its JSON string (for cards that are no longer live) */
+function proposedValue(raw: string): unknown {
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return raw;
+  }
+}
 
 function Value({ v }: { v: unknown }) {
   if (v === undefined || v === null || v === '') return <span className="muted">(empty)</span>;
   if (isImageUrl(v)) return <img src={v as string} alt="" className="ai-thumb" />;
-  if (typeof v === 'string') return <span>{v.length > 220 ? `${v.slice(0, 220)}…` : v}</span>;
+  if (typeof v === 'string') return <LongText text={v} />;
   if (typeof v === 'number' || typeof v === 'boolean') return <span>{String(v)}</span>;
   if (typeof v === 'object' && v && 'text' in v) return <span><b>New question:</b> {String((v as { text: unknown }).text)}</span>;
   if (typeof v === 'object' && v && 'label' in v) return <span>{String((v as { label: unknown }).label)}</span>;
@@ -58,12 +71,13 @@ function Value({ v }: { v: unknown }) {
   return <span className="mono">{JSON.stringify(v).slice(0, 160)}</span>;
 }
 
-export function AiAssistant({ assessmentId, def, update, openQuestion, onJump, status }: {
+export function AiAssistant({ assessmentId, def, update, openQuestion, onShow, status }: {
   assessmentId: string;
   def: AssessmentDefinition;
   update: (fn: (d: AssessmentDefinition) => void) => void;
   openQuestion: string | null;
-  onJump: (tab: EditorTab, questionId?: string) => void;
+  /** Bring the edited field into view in the editor (and preview) */
+  onShow: (target: string) => void;
   status: 'draft' | 'published' | 'paused' | 'archived';
 }) {
   const toast = useToast();
@@ -294,7 +308,7 @@ export function AiAssistant({ assessmentId, def, update, openQuestion, onJump, s
                   onDiscard={() => patchRow(r.id, { status: 'discarded' })}
                   onUndo={() => revert(r)}
                   onRefine={() => { setText('About those changes: '); inputRef.current?.focus(); }}
-                  onJump={(c) => { const l = locate(c.target); onJump(l.tab, l.questionId); }}
+                  onJump={(c) => onShow(c.target)}
                 />
               )}
             </div>
@@ -404,7 +418,14 @@ function ProposalCard({ row, def, stale, selected, setSelected, canUndo, onApply
                     {c.action === 'move' && <div className="small muted">Will be moved</div>}
                   </div>
                 )}
-                {reason && <div className="small error-text">Can't apply: {reason}</div>}
+                {/* Applied, undone or discarded: still show what was suggested, so it can be re-checked */}
+                {!proposed && (c.action === 'set' || c.action === 'insert') && (
+                  <div className="ai-diff">
+                    <div className="small muted">Suggested{row.status === 'undone' ? ' (undone)' : c.applied ? ' (applied)' : ''}:</div>
+                    <div className={c.applied && row.status !== 'undone' ? 'ai-after' : 'ai-suggested'}><Value v={proposedValue(c.value)} /></div>
+                  </div>
+                )}
+                {reason && <div className="small error-text">{proposed ? "Can't apply" : 'Not applied'}: {reason}</div>}
               </div>
             </li>
           );

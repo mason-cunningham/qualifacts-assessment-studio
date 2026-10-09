@@ -88,7 +88,7 @@ export function ContentTab({ def, update, readOnly, openId, setOpenId }: EditorP
 
   return (
     <fieldset disabled={readOnly} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
-      <div className="card">
+      <div className="card" data-ai-anchor="intro">
         <div className="card-title">Intro screen</div>
         <div className="card-sub">The first thing prospects see.</div>
         <div className="grid grid-2">
@@ -109,7 +109,7 @@ export function ContentTab({ def, update, readOnly, openId, setOpenId }: EditorP
         <ImageField label="Hero image (optional)" folder="heroes" value={def.intro.imageUrl} onChange={(v) => update((d) => { d.intro.imageUrl = v; })} />
       </div>
 
-      <div className="row-between" style={{ margin: '22px 0 10px' }}>
+      <div className="row-between" data-ai-anchor="questions" style={{ margin: '22px 0 10px' }}>
         <div>
           <div className="card-title">Sections & questions</div>
           <div className="small muted">{ordered.length} questions in {def.sections.length} sections. Click a question to edit it.</div>
@@ -143,7 +143,7 @@ export function ContentTab({ def, update, readOnly, openId, setOpenId }: EditorP
             {qs.map((q, qi) => {
               const open = openId === q.id;
               return (
-                <div key={q.id}>
+                <div key={q.id} data-ai-anchor={'q:' + q.id}>
                   <div className={`q-row ${open ? 'open' : ''}`} onClick={() => setOpenId(open ? null : q.id)}>
                     <span className="q-num">Q{number.get(q.id)}</span>
                     <div className="q-summary">

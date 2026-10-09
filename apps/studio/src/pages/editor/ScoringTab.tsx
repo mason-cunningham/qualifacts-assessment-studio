@@ -17,7 +17,7 @@ export function ScoringTab({ def, update, readOnly }: EditorProps) {
 
   return (
     <fieldset disabled={readOnly} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
-      <div className="card">
+      <div className="card" data-ai-anchor="scoring">
         <div className="card-title">Scoring method</div>
         <div className="stack" style={{ gap: 8, marginTop: 8 }}>
           {([
@@ -157,7 +157,7 @@ function TierEditor({ title, sub, tiers, onChange, withBody, bodyLabel = 'Guidan
 }) {
   const sorted = [...tiers].sort((a, b) => a.min - b.min);
   return (
-    <div className="card">
+    <div className="card" data-ai-anchor="tiers">
       <div className="card-title">{title}</div>
       <div className="card-sub">{sub}</div>
       {sorted.length > 0 && (
@@ -221,7 +221,7 @@ function defaultWhen(type: InsightWhen['type'], def: EditorProps['def']): Insigh
 
 function InsightsEditor({ def, update }: EditorProps) {
   return (
-    <div className="card">
+    <div className="card" data-ai-anchor="insights">
       <div className="card-title">Guidance rules ("Where to focus")</div>
       <div className="card-sub">
         Conditional paragraphs on the results page. The <b>first</b> rule that matches is shown, so put specific rules above an "Always" fallback.

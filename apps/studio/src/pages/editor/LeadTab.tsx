@@ -15,7 +15,7 @@ export function LeadTab({ def, update, readOnly }: EditorProps) {
 
   return (
     <fieldset disabled={readOnly} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
-      <div className="card">
+      <div className="card" data-ai-anchor="leadCapture">
         <div className="card-title">Lead capture</div>
         <div className="card-sub">When to ask who's taking the assessment.</div>
         <div className="stack" style={{ gap: 8 }}>

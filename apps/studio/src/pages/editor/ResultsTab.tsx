@@ -9,7 +9,7 @@ export function ResultsTab({ def, update, readOnly }: EditorProps) {
 
   return (
     <fieldset disabled={readOnly} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
-      <div className="card">
+      <div className="card" data-ai-anchor="results">
         <div className="card-title">Results page</div>
         <div className="card-sub">What prospects see after they finish. Copy fields support Markdown and merge tags.</div>
         <Check checked={r.thankYouOnly} onChange={(v) => set((x) => { x.thankYouOnly = v; })} label="Show a thank-you message instead of scores (surveys)" />
