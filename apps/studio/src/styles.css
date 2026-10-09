@@ -268,14 +268,17 @@ table.table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .ai-fab { position: fixed; right: 24px; bottom: 84px; z-index: 90; width: 56px; height: 56px; border-radius: 50%; border: 0; padding: 0; cursor: pointer; background: transparent; box-shadow: 0 10px 28px rgba(45, 34, 100, 0.32); transition: transform .15s, box-shadow .15s, opacity .15s; }
 .ai-fab:hover { transform: translateY(-2px) scale(1.04); box-shadow: 0 14px 34px rgba(198, 0, 126, 0.32); }
 .ai-fab:focus-visible { outline: none; box-shadow: var(--s-focus), 0 10px 28px rgba(45, 34, 100, 0.32); }
-.ai-fab-ring { position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(from 0deg, #00B2A9, #7B3FA0, #C6007E, #E8A317, #00B2A9, #2D2264, #00B2A9); animation: ai-spin 6s linear infinite; }
+.ai-fab-ring { position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(from 0deg, #00B2A9, #7B3FA0, #C6007E, #E8A317, #00B2A9, #2D2264, #00B2A9); animation: ai-spin 1.2s cubic-bezier(.4, 0, .2, 1) 1; }
 .ai-fab-ring::after { content: ''; position: absolute; inset: 0; border-radius: 50%; background: radial-gradient(circle at 30% 25%, rgba(255,255,255,.45), transparent 55%); }
 .ai-fab-icon { position: relative; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; color: #fff; }
 .ai-fab-icon svg { width: 24px; height: 24px; filter: drop-shadow(0 1px 2px rgba(0,0,0,.25)); }
 .ai-fab.is-open { opacity: 0; pointer-events: none; transform: scale(.8); }
 .ai-fab-dot { position: absolute; top: 2px; right: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--magenta); border: 2px solid #fff; }
 @keyframes ai-spin { to { transform: rotate(360deg); } }
-@media (prefers-reduced-motion: reduce) { .ai-fab-ring { animation: none; } .ai-panel { transition: none; } }
+/* After the one spin: a single pulse, then it stays still */
+.ai-fab { animation: ai-pulse .5s ease-out 1.2s 1; }
+@keyframes ai-pulse { 0% { transform: scale(1); } 45% { transform: scale(1.14); } 100% { transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) { .ai-fab, .ai-fab-ring { animation: none; } .ai-panel { transition: none; } }
 
 /* Slide-in panel: floats with its bottom edge above the Netlify badge */
 .ai-panel { position: fixed; top: 12px; right: 12px; bottom: 76px; z-index: 95; width: 440px; max-width: calc(100vw - 24px); display: flex; flex-direction: column; background: var(--s-surface); border-radius: var(--s-r-lg); box-shadow: var(--s-shadow-lg); transform: translateX(calc(100% + 24px)); visibility: hidden; transition: transform .22s ease, visibility 0s linear .22s; overflow: hidden; }
