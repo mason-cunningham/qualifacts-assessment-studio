@@ -4,6 +4,7 @@ import {
   AiSectionQuestionsSchema,
   KnowledgeExtractSchema,
   ProductExtractSchema,
+  AssessmentEditSchema,
   OptionsResultSchema,
   ReviewResultSchema,
   RewriteResultSchema,
@@ -20,6 +21,8 @@ import {
   type AiRequest,
   type ExtractKnowledgeRequest,
   type ExtractProductRequest,
+  type EditAssessmentRequest,
+  type AssessmentEdit,
   type ProductExtract,
   type GenerateRequest,
   type ImportRequest,
@@ -43,6 +46,7 @@ type ResultFor<R extends AiRequest> =
   : R extends GenerateSectionRequest ? AiSectionQuestions
   : R extends ExtractKnowledgeRequest ? KnowledgeExtract
   : R extends ExtractProductRequest ? ProductExtract
+  : R extends EditAssessmentRequest ? AssessmentEdit
   : R extends RewriteRequest ? RewriteResult
   : R extends OptionsRequest ? OptionsResult
   : R extends TierCopyRequest ? TierCopyResult
@@ -56,6 +60,7 @@ const SCHEMA = {
   generate_section: AiSectionQuestionsSchema,
   extract_knowledge: KnowledgeExtractSchema,
   extract_product: ProductExtractSchema,
+  edit_assessment: AssessmentEditSchema,
   rewrite: RewriteResultSchema,
   options: OptionsResultSchema,
   tier_copy: TierCopyResultSchema,

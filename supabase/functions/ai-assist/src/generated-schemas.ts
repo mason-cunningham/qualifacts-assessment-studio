@@ -1291,5 +1291,62 @@ export const SCHEMAS = {
       "sourceNotes"
     ],
     "description": "{$schema: \"https://json-schema.org/draft/2020-12/schema\"}"
+  },
+  "AssessmentEdit": {
+    "type": "object",
+    "properties": {
+      "reply": {
+        "type": "string",
+        "description": "1–3 friendly sentences to the creator: what you changed (or why nothing), in plain words"
+      },
+      "clarifyingQuestion": {
+        "type": "string",
+        "description": "Ask this instead of guessing when the request is ambiguous or would change a lot; \"\" otherwise"
+      },
+      "changes": {
+        "type": "array",
+        "description": "The fewest changes that do exactly what was asked; [] when asking a clarifying question",
+        "items": {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "description": "{enum: [\"set\",\"insert\",\"remove\",\"move\"]}"
+            },
+            "target": {
+              "type": "string",
+              "description": "Id-based path, e.g. \"questions/q_ab12/options/o_9/label\", \"intro/headline\", \"questions\" (for insert)"
+            },
+            "value": {
+              "type": "string",
+              "description": "JSON-encoded new value for set/insert (a JSON string like \"\\\"Rarely\\\"\" for text); \"\" for remove/move"
+            },
+            "afterId": {
+              "type": "string",
+              "description": "insert/move: id to place after (\"^\" for the start, \"\" for the end); \"\" otherwise"
+            },
+            "description": {
+              "type": "string",
+              "description": "Short plain-English label for the review list, e.g. \"Q3: shorter answer choices\""
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "action",
+            "target",
+            "value",
+            "afterId",
+            "description"
+          ]
+        }
+      }
+    },
+    "additionalProperties": false,
+    "required": [
+      "reply",
+      "clarifyingQuestion",
+      "changes"
+    ],
+    "description": "{$schema: \"https://json-schema.org/draft/2020-12/schema\"}"
   }
 } as const satisfies Record<string, Record<string, unknown>>;

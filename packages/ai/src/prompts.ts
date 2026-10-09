@@ -1,6 +1,7 @@
 import type Anthropic from '@anthropic-ai/sdk';
 import type {
   ExtractKnowledgeRequest,
+  EditAssessmentRequest,
   ExtractProductRequest,
   GenerateBrief,
   OptionsRequest,
@@ -293,6 +294,35 @@ Rules:
 - Write for a behavioral health operations or finance leader: plain, specific, confident, never hype.
 - Keep it tight: tagline 12 words or fewer; "what it does" and "why it matters" 1–2 sentences each; 3–6 benefits of 12 words or fewer.
 - Features: 3–10 distinct capabilities a customer would recognize, each with the problem it solves in the customer's own words (e.g. the pain they feel), what it does, and up to 3 short benefits. Don't split one capability into several features or repeat the same benefit.${req.hint ? `\n\nCreator's note: ${req.hint}` : ''}`;
+}
+
+export function editTask(req: EditAssessmentRequest): string {
+  const history = req.messages.length
+    ? `<conversation>\n${req.messages.map((m) => `${m.role === 'user' ? 'Creator' : 'You'}: ${m.text}`).join('\n')}\n</conversation>\n\n`
+    : '';
+  const images = req.images.length
+    ? `\n\nThe creator attached ${req.images.length} image(s), shown above in order. Their URLs (use these exact strings as values for image fields only):\n${req.images.map((im, i) => `${i + 1}. ${im.name}: ${im.url}`).join('\n')}`
+    : '';
+  return `You're editing an existing assessment with its creator. The current assessment is the JSON below; it may already be live, so edits must be precise.
+
+<assessment>
+${JSON.stringify(req.definition)}
+</assessment>
+
+${history}<request>
+${req.request}
+</request>${req.focusQuestionId ? `\n\nThe creator has question ${req.focusQuestionId} open; "this question" means that one.` : ''}${images}
+
+How to edit:
+- Do exactly what the request asks, and nothing else. Never rewrite, reorder or "improve" questions, choices, scoring, tiers, results copy or settings the request doesn't mention. Prefer the fewest, smallest changes.
+- Address everything by id paths that exist in the JSON: "questions/<id>/text", "questions/<id>/options/<id>/label", "questions/<id>/imageUrl", "sections/<id>/name", "scoring/tiers/<id>/summary", "insights/<id>/body", "intro/headline", "intro/imageUrl", "results/body", "theme/heroImageUrl", "leadCapture/fields/<key>/label". Lists are addressed by item id (lead fields by key), never by position.
+- set replaces one field (value is that field's JSON). insert adds an item to a list (target is the list, value is the full item JSON; new questions need sectionId, type, role, text and options; you may omit ids). remove deletes the item at target. move puts the item at target after afterId.
+- Keep every existing id. Keep the assessment's scoring method, point scale and tone unless asked.
+- Follow the house rules for answer choices (one short situation each, 40–90 characters, never over 110).
+- Products marked library: true are read-only here; you may only reference their ids and feature ids.
+- Use attached images only in image fields (questions/<id>/imageUrl, intro/imageUrl, theme/heroImageUrl, theme/logoUrl, theme/coBrandLogoUrl), and only where the creator says.
+- If the request is ambiguous, would change many parts of the assessment, or you'd have to guess the creator's intent, return no changes and ask one short clarifying question.
+- reply: 1–3 sentences in plain words. Don't list ids.`;
 }
 
 function questionText(req: RewriteRequest | OptionsRequest): string {

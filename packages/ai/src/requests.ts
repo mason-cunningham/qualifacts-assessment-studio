@@ -2,7 +2,7 @@
 
 export type AiMode =
   | 'generate' | 'import' | 'generate_plan' | 'generate_section'
-  | 'extract_knowledge' | 'extract_product' | 'rewrite' | 'options' | 'tier_copy' | 'review';
+  | 'extract_knowledge' | 'extract_product' | 'edit_assessment' | 'rewrite' | 'options' | 'tier_copy' | 'review';
 
 export interface GenerateBrief {
   title: string;
@@ -91,6 +91,20 @@ export interface ExtractProductRequest {
   current?: { name: string; productLine?: string; features?: { name: string }[] };
 }
 
+/** Editor AI assistant: propose scoped edits to an existing draft or live assessment. */
+export interface EditAssessmentRequest {
+  mode: 'edit_assessment';
+  /** Current draft definition (see definitionForEditing) */
+  definition: unknown;
+  /** Earlier turns in this assessment's chat (oldest first, last ~10) */
+  messages: { role: 'user' | 'assistant'; text: string }[];
+  request: string;
+  /** Images the creator attached to THIS message (public asset URLs) */
+  images: { url: string; name: string }[];
+  /** Question open in the editor, to resolve "this question" */
+  focusQuestionId?: string;
+}
+
 export interface QuestionContext {
   assessmentTitle: string;
   audience: string;
@@ -131,6 +145,7 @@ export type AiRequest =
   | GenerateSectionRequest
   | ExtractKnowledgeRequest
   | ExtractProductRequest
+  | EditAssessmentRequest
   | RewriteRequest
   | OptionsRequest
   | TierCopyRequest

@@ -210,6 +210,21 @@ export const ProductExtractSchema = z.object({
 });
 
 export type ProductExtract = z.infer<typeof ProductExtractSchema>;
+
+// ── Editor AI assistant: scoped, id-addressed edits (applied by edits.ts) ───
+export const AssessmentEditSchema = z.object({
+  reply: z.string().describe('1–3 friendly sentences to the creator: what you changed (or why nothing), in plain words'),
+  clarifyingQuestion: z.string().describe('Ask this instead of guessing when the request is ambiguous or would change a lot; "" otherwise'),
+  changes: z.array(z.object({
+    action: z.enum(['set', 'insert', 'remove', 'move']),
+    target: z.string().describe('Id-based path, e.g. "questions/q_ab12/options/o_9/label", "intro/headline", "questions" (for insert)'),
+    value: z.string().describe('JSON-encoded new value for set/insert (a JSON string like "\\"Rarely\\"" for text); "" for remove/move'),
+    afterId: z.string().describe('insert/move: id to place after ("^" for the start, "" for the end); "" otherwise'),
+    description: z.string().describe('Short plain-English label for the review list, e.g. "Q3: shorter answer choices"'),
+  })).describe('The fewest changes that do exactly what was asked; [] when asking a clarifying question'),
+});
+
+export type AssessmentEdit = z.infer<typeof AssessmentEditSchema>;
 export type AiOption = z.infer<typeof AiOptionSchema>;
 export type AiQuestion = z.infer<typeof AiQuestionSchema>;
 export type AiSection = z.infer<typeof AiSectionSchema>;

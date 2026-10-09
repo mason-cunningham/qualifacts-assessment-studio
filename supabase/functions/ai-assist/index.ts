@@ -232,6 +232,39 @@ Rules:
 
 Creator's note: ${req.hint}` : ""}`;
 }
+function editTask(req) {
+  const history = req.messages.length ? `<conversation>
+${req.messages.map((m) => `${m.role === "user" ? "Creator" : "You"}: ${m.text}`).join("\n")}
+</conversation>
+
+` : "";
+  const images = req.images.length ? `
+
+The creator attached ${req.images.length} image(s), shown above in order. Their URLs (use these exact strings as values for image fields only):
+${req.images.map((im, i) => `${i + 1}. ${im.name}: ${im.url}`).join("\n")}` : "";
+  return `You're editing an existing assessment with its creator. The current assessment is the JSON below; it may already be live, so edits must be precise.
+
+<assessment>
+${JSON.stringify(req.definition)}
+</assessment>
+
+${history}<request>
+${req.request}
+</request>${req.focusQuestionId ? `
+
+The creator has question ${req.focusQuestionId} open; "this question" means that one.` : ""}${images}
+
+How to edit:
+- Do exactly what the request asks, and nothing else. Never rewrite, reorder or "improve" questions, choices, scoring, tiers, results copy or settings the request doesn't mention. Prefer the fewest, smallest changes.
+- Address everything by id paths that exist in the JSON: "questions/<id>/text", "questions/<id>/options/<id>/label", "questions/<id>/imageUrl", "sections/<id>/name", "scoring/tiers/<id>/summary", "insights/<id>/body", "intro/headline", "intro/imageUrl", "results/body", "theme/heroImageUrl", "leadCapture/fields/<key>/label". Lists are addressed by item id (lead fields by key), never by position.
+- set replaces one field (value is that field's JSON). insert adds an item to a list (target is the list, value is the full item JSON; new questions need sectionId, type, role, text and options; you may omit ids). remove deletes the item at target. move puts the item at target after afterId.
+- Keep every existing id. Keep the assessment's scoring method, point scale and tone unless asked.
+- Follow the house rules for answer choices (one short situation each, 40\u201390 characters, never over 110).
+- Products marked library: true are read-only here; you may only reference their ids and feature ids.
+- Use attached images only in image fields (questions/<id>/imageUrl, intro/imageUrl, theme/heroImageUrl, theme/logoUrl, theme/coBrandLogoUrl), and only where the creator says.
+- If the request is ambiguous, would change many parts of the assessment, or you'd have to guess the creator's intent, return no changes and ask one short clarifying question.
+- reply: 1\u20133 sentences in plain words. Don't list ids.`;
+}
 function questionText(req) {
   const q = req.question;
   const opts = q.options.length ? q.options.map((o, i) => `  ${i + 1}. ${o.label}${o.points !== void 0 ? ` (${o.points} pts)` : ""}${o.isGap ? " [gap]" : ""}`).join("\n") : "  (none)";
@@ -1592,6 +1625,63 @@ var SCHEMAS = {
       "sourceNotes"
     ],
     "description": '{$schema: "https://json-schema.org/draft/2020-12/schema"}'
+  },
+  "AssessmentEdit": {
+    "type": "object",
+    "properties": {
+      "reply": {
+        "type": "string",
+        "description": "1\u20133 friendly sentences to the creator: what you changed (or why nothing), in plain words"
+      },
+      "clarifyingQuestion": {
+        "type": "string",
+        "description": 'Ask this instead of guessing when the request is ambiguous or would change a lot; "" otherwise'
+      },
+      "changes": {
+        "type": "array",
+        "description": "The fewest changes that do exactly what was asked; [] when asking a clarifying question",
+        "items": {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "description": '{enum: ["set","insert","remove","move"]}'
+            },
+            "target": {
+              "type": "string",
+              "description": 'Id-based path, e.g. "questions/q_ab12/options/o_9/label", "intro/headline", "questions" (for insert)'
+            },
+            "value": {
+              "type": "string",
+              "description": 'JSON-encoded new value for set/insert (a JSON string like "\\"Rarely\\"" for text); "" for remove/move'
+            },
+            "afterId": {
+              "type": "string",
+              "description": 'insert/move: id to place after ("^" for the start, "" for the end); "" otherwise'
+            },
+            "description": {
+              "type": "string",
+              "description": 'Short plain-English label for the review list, e.g. "Q3: shorter answer choices"'
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "action",
+            "target",
+            "value",
+            "afterId",
+            "description"
+          ]
+        }
+      }
+    },
+    "additionalProperties": false,
+    "required": [
+      "reply",
+      "clarifyingQuestion",
+      "changes"
+    ],
+    "description": '{$schema: "https://json-schema.org/draft/2020-12/schema"}'
   }
 };
 
@@ -1604,6 +1694,7 @@ var MODE_CONFIG = {
   generate_section: { schema: "AiSectionQuestions", effort: "medium", maxTokens: 12e3, constrained: false },
   extract_knowledge: { schema: "KnowledgeExtract", effort: "medium", maxTokens: 16e3, constrained: true },
   extract_product: { schema: "ProductExtract", effort: "medium", maxTokens: 16e3, constrained: true },
+  edit_assessment: { schema: "AssessmentEdit", effort: "medium", maxTokens: 12e3, constrained: true },
   rewrite: { schema: "RewriteResult", effort: "low", maxTokens: 4e3, constrained: true },
   options: { schema: "OptionsResult", effort: "low", maxTokens: 4e3, constrained: true },
   tier_copy: { schema: "TierCopyResult", effort: "medium", maxTokens: 8e3, constrained: true },
@@ -1846,6 +1937,16 @@ async function buildContent(db, body, meta) {
       if (ctx.pdfs.length + ctx.attachments.length === 0) throw new Error("Upload at least one file to read.");
       meta.files = ctx.pdfs.length + ctx.attachments.length;
       return [...contextBlocks({ ...ctx, products: [], knowledge: [] }, { includeProducts: false }), { type: "text", text: extractProductTask(body) }];
+    }
+    case "edit_assessment": {
+      if (!body.request?.trim()) throw new Error("Describe the change you want.");
+      const defJson = JSON.stringify(body.definition ?? null);
+      if (defJson.length > 4e5) throw new Error("This assessment is too large to edit with AI.");
+      const assetPrefix = `${Deno.env.get("SUPABASE_URL")}/storage/v1/object/public/q-quiz-assets/`;
+      const images = (body.images ?? []).filter((im) => typeof im?.url === "string" && im.url.startsWith(assetPrefix)).slice(0, 4);
+      meta.images = images.length;
+      const blocks = images.map((im) => ({ type: "image", source: { type: "url", url: im.url } }));
+      return [...blocks, { type: "text", text: editTask({ ...body, messages: (body.messages ?? []).slice(-10), images }) }];
     }
     case "rewrite":
       return [{ type: "text", text: rewriteTask(body) }];

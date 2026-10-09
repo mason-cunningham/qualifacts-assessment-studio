@@ -17,6 +17,7 @@ import {
   contextBlocks,
   extractKnowledgeTask,
   extractProductTask,
+  editTask,
   generateTask,
   importTask,
   optionsTask,
@@ -50,6 +51,7 @@ const MODE_CONFIG: Record<AiMode, { schema: keyof typeof SCHEMAS; effort: Effort
   generate_section: { schema: 'AiSectionQuestions', effort: 'medium', maxTokens: 12000, constrained: false },
   extract_knowledge: { schema: 'KnowledgeExtract', effort: 'medium', maxTokens: 16000, constrained: true },
   extract_product: { schema: 'ProductExtract', effort: 'medium', maxTokens: 16000, constrained: true },
+  edit_assessment: { schema: 'AssessmentEdit', effort: 'medium', maxTokens: 12000, constrained: true },
   rewrite: { schema: 'RewriteResult', effort: 'low', maxTokens: 4000, constrained: true },
   options: { schema: 'OptionsResult', effort: 'low', maxTokens: 4000, constrained: true },
   tier_copy: { schema: 'TierCopyResult', effort: 'medium', maxTokens: 8000, constrained: true },
@@ -329,6 +331,17 @@ async function buildContent(db: any, body: AiRequest, meta: Record<string, unkno
       if (ctx.pdfs.length + ctx.attachments.length === 0) throw new Error('Upload at least one file to read.');
       meta.files = ctx.pdfs.length + ctx.attachments.length;
       return [...contextBlocks({ ...ctx, products: [], knowledge: [] }, { includeProducts: false }), { type: 'text', text: extractProductTask(body) }];
+    }
+    case 'edit_assessment': {
+      if (!body.request?.trim()) throw new Error('Describe the change you want.');
+      const defJson = JSON.stringify(body.definition ?? null);
+      if (defJson.length > 400_000) throw new Error('This assessment is too large to edit with AI.');
+      // Images must come from our own public assets bucket (uploaded from Studio)
+      const assetPrefix = `${Deno.env.get('SUPABASE_URL')}/storage/v1/object/public/q-quiz-assets/`;
+      const images = (body.images ?? []).filter((im) => typeof im?.url === 'string' && im.url.startsWith(assetPrefix)).slice(0, 4);
+      meta.images = images.length;
+      const blocks: Anthropic.Beta.BetaContentBlockParam[] = images.map((im) => ({ type: 'image', source: { type: 'url', url: im.url } }));
+      return [...blocks, { type: 'text', text: editTask({ ...body, messages: (body.messages ?? []).slice(-10), images }) }];
     }
     case 'rewrite':
       return [{ type: 'text', text: rewriteTask(body) }];

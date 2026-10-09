@@ -236,3 +236,17 @@ export const FOLLOW_UP_LABELS: Record<FollowUpStatus, string> = {
 };
 
 export const PRODUCT_LINES = ['InSync', 'CareLogic', 'Credible', 'Streamline', 'Qualifacts iQ', 'RCMS', 'CES', 'Greenspace', 'Other'];
+
+/** One message in an assessment's AI assistant chat ("q-quiz-assessment-ai-chat"). */
+export interface AiChatRow {
+  id: string;
+  assessment_id: string;
+  user_id: string | null;
+  role: 'user' | 'assistant';
+  content: string;
+  images: { url: string; name: string }[];
+  /** Proposed edits (assistant rows), with what happened to each */
+  changes: { action: 'set' | 'insert' | 'remove' | 'move'; target: string; value: string; afterId: string; description: string; applied?: boolean; reason?: string }[];
+  status: 'proposed' | 'applied' | 'partly_applied' | 'discarded' | 'answered' | 'undone';
+  created_at: string;
+}

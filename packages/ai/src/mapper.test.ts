@@ -6,6 +6,7 @@ import { draftToDefinition, summarizeDefinition } from './mapper';
 import { extractJsonObject } from './json';
 import { mergeStages, sectionQuestionsFromDraft } from './stages';
 import { normalizeDraft, normalizePlan, normalizeSectionQuestions } from './normalize';
+import { applyEdits, previewEdits } from './edits';
 import type { AiPlan } from './schemas';
 import * as S from './schemas';
 import { AiDraftSchema, type AiDraft, type AiOption, type AiQuestion } from './schemas';
@@ -66,7 +67,7 @@ function baseDraft(overrides: Partial<AiDraft> = {}): AiDraft {
 
 describe('structured-output schemas', () => {
   // The API rejects schemas with more than 16 union-typed parameters (nullable = union).
-  const names = ['AiDraftSchema', 'AiPlanSchema', 'AiSectionQuestionsSchema', 'RewriteResultSchema', 'OptionsResultSchema', 'TierCopyResultSchema', 'ReviewResultSchema', 'KnowledgeExtractSchema', 'ProductExtractSchema'] as const;
+  const names = ['AiDraftSchema', 'AiPlanSchema', 'AiSectionQuestionsSchema', 'RewriteResultSchema', 'OptionsResultSchema', 'TierCopyResultSchema', 'ReviewResultSchema', 'KnowledgeExtractSchema', 'ProductExtractSchema', 'AssessmentEditSchema'] as const;
   for (const n of names) {
     it(`${n} has no union-typed parameters and closes every object`, () => {
       const json = JSON.stringify(zodOutputFormat(S[n]).schema);
@@ -78,6 +79,81 @@ describe('structured-output schemas', () => {
       expect(json).not.toMatch(/"minimum"|"maximum"|"minLength"|"maxLength"/);
     });
   }
+});
+
+describe('scoped AI edits (applyEdits)', () => {
+  const def = () => draftToDefinition(baseDraft(), products).definition;
+  const ch = (action: 'set' | 'insert' | 'remove' | 'move', target: string, value: unknown = '', afterId = '') =>
+    ({ action, target, value: value === '' ? '' : JSON.stringify(value), afterId, description: 'test' });
+
+  it('sets text, an option label and a tier summary, leaving everything else identical', () => {
+    const d = def();
+    const [q1] = d.questions;
+    const { definition, results } = applyEdits(d, [
+      ch('set', `questions/${q1.id}/text`, 'When do you check eligibility?'),
+      ch('set', `questions/${q1.id}/options/${q1.options[1].id}/label`, 'On the day'),
+      ch('set', `scoring/tiers/${d.scoring.tiers[0].id}/summary`, 'You are in great shape.'),
+    ]);
+    expect(results.every((r) => r.ok)).toBe(true);
+    expect(definition.questions[0].text).toBe('When do you check eligibility?');
+    expect(definition.questions[0].options[1].label).toBe('On the day');
+    expect(definition.scoring.tiers[0].summary).toBe('You are in great shape.');
+    expect(definition.questions[1]).toEqual(d.questions[1]);
+    expect(definition.results).toEqual(d.results);
+    expect(definition.questions[0].options[0]).toEqual(d.questions[0].options[0]);
+  });
+
+  it('accepts plain (non-JSON) text values and image URLs', () => {
+    const d = def();
+    const id = d.questions[1].id;
+    const { definition } = applyEdits(d, [
+      { action: 'set', target: `questions/${id}/helpText`, value: 'Count the last 90 days', afterId: '', description: '' },
+      ch('set', `questions/${id}/imageUrl`, 'https://x.supabase.co/storage/v1/object/public/q-quiz-assets/ai-chat/a.png'),
+    ]);
+    expect(definition.questions[1].helpText).toBe('Count the last 90 days');
+    expect(definition.questions[1].imageUrl).toMatch(/ai-chat\/a\.png$/);
+  });
+
+  it('inserts a question after an id with fresh ids, and removes an option', () => {
+    const d = def();
+    const [q1, q2] = d.questions;
+    const newQ = { sectionId: q1.sectionId, type: 'single', role: 'scored', text: 'Who owns denials?', options: [{ label: 'One owner', points: 2 }, { label: 'Nobody', points: 0, isGap: true }] };
+    const { definition, results } = applyEdits(d, [
+      ch('insert', 'questions', newQ, q1.id),
+      ch('remove', `questions/${q1.id}/options/${q1.options[1].id}`),
+    ]);
+    expect(results.map((r) => r.ok)).toEqual([true, true]);
+    const inserted = definition.questions[1];
+    expect(inserted.text).toBe('Who owns denials?');
+    expect(inserted.id).toMatch(/^q_/);
+    expect(inserted.options.every((o) => /^o_/.test(o.id))).toBe(true);
+    expect(definition.questions.find((x) => x.id === q1.id)!.options).toHaveLength(q1.options.length - 1);
+    expect(definition.questions.find((x) => x.id === q2.id)).toEqual(q2);
+  });
+
+  it('rejects bad paths and changes that break a publish check, but still applies the rest', () => {
+    const d = def();
+    const q1 = d.questions[0];
+    const { definition, results } = applyEdits(d, [
+      ch('set', 'questions/q_nope/text', 'x'),
+      ch('set', `questions/${q1.id}/options`, []), // leaves a choice question with no choices
+      ch('set', `questions/${q1.id}/id`, 'hijack'),
+      ch('set', 'intro/headline', 'New headline'),
+    ]);
+    expect(results.map((r) => r.ok)).toEqual([false, false, false, true]);
+    expect(results[0].reason).toMatch(/Couldn't find/);
+    expect(results[1].reason).toMatch(/problem/);
+    expect(definition.questions[0].options).toHaveLength(q1.options.length);
+    expect(definition.intro.headline).toBe('New headline');
+  });
+
+  it('protects library products and only applies selected changes', () => {
+    const d = def();
+    const pid = d.products[0].id;
+    const { results } = applyEdits(d, [ch('set', `products/${pid}/name`, 'Renamed'), ch('set', 'intro/headline', 'A'), ch('set', 'intro/headline', 'B')], (i) => i !== 2);
+    expect(results.map((r) => [r.index, r.ok])).toEqual([[0, false], [1, true]]);
+    expect(previewEdits(d, [ch('set', 'intro/headline', 'Z')])[0]).toMatchObject({ ok: true, before: d.intro.headline, after: 'Z' });
+  });
 });
 
 describe('feature mapping', () => {

@@ -22,6 +22,7 @@ export const T = {
   stats: 'q-quiz-assessment-stats',
   knowledge: 'q-quiz-knowledge',
   aiRequests: 'q-quiz-ai-requests',
+  aiChat: 'q-quiz-assessment-ai-chat',
   answersView: 'q-quiz-response-answers',
 } as const;
 

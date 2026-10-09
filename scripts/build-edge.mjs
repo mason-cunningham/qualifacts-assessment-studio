@@ -29,6 +29,7 @@ const schemas = {
   ReviewResult: S.ReviewResultSchema,
   KnowledgeExtract: S.KnowledgeExtractSchema,
   ProductExtract: S.ProductExtractSchema,
+  AssessmentEdit: S.AssessmentEditSchema,
 };
 const out = {};
 for (const [k, v] of Object.entries(schemas)) out[k] = zodOutputFormat(v).schema;

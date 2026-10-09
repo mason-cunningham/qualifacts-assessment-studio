@@ -7,6 +7,7 @@ import { TopBar } from '../../components/Layout';
 import { ErrorBox, Loading, Modal, StatusPill, useToast } from '../../components/ui';
 import { ShareKit } from '../../components/ShareKit';
 import { ShareAccessDialog } from '../../components/ShareAccess';
+import { AiAssistant } from '../../components/AiAssistant';
 import { IconShare } from '../../components/icons';
 import { ReviewButton } from '../../components/AiHelpers';
 import { supabase, T, errorMessage } from '../../lib/supabase';
@@ -307,6 +308,17 @@ export function EditorPage() {
           </div>
         )}
       </div>
+
+      {canEdit && saveState !== 'conflict' && (
+        <AiAssistant
+          assessmentId={row.id}
+          def={def}
+          update={update}
+          openQuestion={tab === 'content' ? openQuestion : null}
+          status={row.status}
+          onJump={(t, questionId) => { setTab(t); if (questionId) setOpenQuestion(questionId); }}
+        />
+      )}
 
       {sharing && (
         <ShareAccessDialog
