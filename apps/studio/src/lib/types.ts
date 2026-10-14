@@ -1,4 +1,7 @@
 import type { AnswerRecord } from '@qq/schema';
+import type { ReportSettings } from '@qq/ai';
+
+export type ReportStatus = 'none' | 'pending' | 'generating' | 'ready' | 'failed';
 
 export type Role = 'admin' | 'editor' | 'viewer';
 export type AssessmentStatus = 'draft' | 'published' | 'paused' | 'archived';
@@ -50,6 +53,10 @@ export interface AssessmentSettings {
   crm?: { enabled?: boolean; object?: string; lead_source?: string; campaign_id?: string | null; field_map?: Record<string, string> };
   response_cap?: number | null;
   closed_message?: string;
+  /** Per-response AI PDF report (see packages/ai/src/report.ts) */
+  report?: ReportSettings;
+  /** What the AI used to generate this assessment (knowledge docs, brief…) */
+  ai_brief?: { knowledgeIds?: string[] } & Record<string, unknown>;
 }
 
 export interface AssessmentRow {
@@ -152,6 +159,10 @@ export interface ResponseRow {
   owner_id: string | null;
   crm_sync_status: string;
   crm_external_id: string | null;
+  report_status: ReportStatus;
+  report_url: string | null;
+  report_error: string | null;
+  report_generated_at: string | null;
   created_at: string;
 }
 

@@ -1682,6 +1682,60 @@ var SCHEMAS = {
       "changes"
     ],
     "description": '{$schema: "https://json-schema.org/draft/2020-12/schema"}'
+  },
+  "Report": {
+    "type": "object",
+    "properties": {
+      "executiveSummary": {
+        "type": "string",
+        "description": "3\u20134 sentences, written to the respondent: where they are strong and their biggest opportunity"
+      },
+      "sections": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "sectionId": {
+              "type": "string",
+              "description": "One of the section ids you were asked to analyze"
+            },
+            "gap": {
+              "type": "string",
+              "description": "1\u20132 sentences: the specific gap their answers show in this area"
+            },
+            "impact": {
+              "type": "string",
+              "description": "1\u20132 sentences: what that gap costs them (time, cash, compliance, client experience)"
+            },
+            "recommendations": {
+              "type": "array",
+              "description": "Exactly 3 tactical steps their own team could start next week",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "sectionId",
+            "gap",
+            "impact",
+            "recommendations"
+          ]
+        }
+      },
+      "conclusion": {
+        "type": "string",
+        "description": "2\u20133 sentences: encouraging close; may say how the listed Qualifacts solutions help, without forcing it"
+      }
+    },
+    "additionalProperties": false,
+    "required": [
+      "executiveSummary",
+      "sections",
+      "conclusion"
+    ],
+    "description": '{$schema: "https://json-schema.org/draft/2020-12/schema"}'
   }
 };
 

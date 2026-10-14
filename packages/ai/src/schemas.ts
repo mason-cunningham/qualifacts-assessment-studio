@@ -225,6 +225,20 @@ export const AssessmentEditSchema = z.object({
 });
 
 export type AssessmentEdit = z.infer<typeof AssessmentEditSchema>;
+
+// ── Per-response PDF report (report-pdf Edge Function) ──────────────────────
+// Names, scores and tiers are supplied by code; Claude only writes the narrative.
+export const ReportSchema = z.object({
+  executiveSummary: z.string().describe('3–4 sentences, written to the respondent: where they are strong and their biggest opportunity'),
+  sections: z.array(z.object({
+    sectionId: z.string().describe('One of the section ids you were asked to analyze'),
+    gap: z.string().describe('1–2 sentences: the specific gap their answers show in this area'),
+    impact: z.string().describe('1–2 sentences: what that gap costs them (time, cash, compliance, client experience)'),
+    recommendations: z.array(z.string()).describe('Exactly 3 tactical steps their own team could start next week'),
+  })),
+  conclusion: z.string().describe('2–3 sentences: encouraging close; may say how the listed Qualifacts solutions help, without forcing it'),
+});
+export type ReportContent = z.infer<typeof ReportSchema>;
 export type AiOption = z.infer<typeof AiOptionSchema>;
 export type AiQuestion = z.infer<typeof AiQuestionSchema>;
 export type AiSection = z.infer<typeof AiSectionSchema>;

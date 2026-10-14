@@ -26,6 +26,7 @@ const LEAD_COLUMNS: Column[] = [
   { key: 'tier_label', header: 'Tier', get: (r) => r.tier_label },
   { key: 'recommendations', header: 'Recommended Solutions', get: (r) => r.recommendations.map((x) => (x.features?.length ? `${x.name} (${x.features.join(', ')})` : x.name)).join('; ') },
   { key: 'follow_up_status', header: 'Follow-up', get: (r) => FOLLOW_UP_LABELS[r.follow_up_status] },
+  { key: 'report_url', header: 'Report PDF', get: (r) => (r.report_status === 'ready' ? r.report_url : '') },
   { key: 'source', header: 'Source', get: (r) => r.source },
   { key: 'rep_code', header: 'Rep', get: (r) => r.rep_code },
   { key: 'utm_source', header: 'UTM Source', get: (r) => r.utm_source },

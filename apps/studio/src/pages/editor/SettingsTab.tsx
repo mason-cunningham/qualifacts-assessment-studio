@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { slugify } from '@qq/schema';
 import { Check, Field, TextArea, TextInput, useToast } from '../../components/ui';
 import { ShareKit } from '../../components/ShareKit';
+import { ReportSettingsCard } from '../../components/ReportSettingsCard';
 import { supabase, T } from '../../lib/supabase';
 import { displayName, useAuth } from '../../lib/auth';
 import { isSlugAvailable } from '../../lib/assessments';
@@ -127,6 +128,8 @@ export function SettingsTab({ def, update, readOnly, row, saveRow, onRestore }: 
         </Field>
         <Check checked={row.is_template} onChange={(v) => saveRow({ is_template: v })} label="Offer this as a team template when creating new assessments" />
       </div>
+
+      <ReportSettingsCard row={row} def={def} readOnly={readOnly} saveSettings={saveSettings} />
 
       <div className="card">
         <div className="card-title">Salesforce (coming later)</div>

@@ -67,7 +67,7 @@ function baseDraft(overrides: Partial<AiDraft> = {}): AiDraft {
 
 describe('structured-output schemas', () => {
   // The API rejects schemas with more than 16 union-typed parameters (nullable = union).
-  const names = ['AiDraftSchema', 'AiPlanSchema', 'AiSectionQuestionsSchema', 'RewriteResultSchema', 'OptionsResultSchema', 'TierCopyResultSchema', 'ReviewResultSchema', 'KnowledgeExtractSchema', 'ProductExtractSchema', 'AssessmentEditSchema'] as const;
+  const names = ['AiDraftSchema', 'AiPlanSchema', 'AiSectionQuestionsSchema', 'RewriteResultSchema', 'OptionsResultSchema', 'TierCopyResultSchema', 'ReviewResultSchema', 'KnowledgeExtractSchema', 'ProductExtractSchema', 'AssessmentEditSchema', 'ReportSchema'] as const;
   for (const n of names) {
     it(`${n} has no union-typed parameters and closes every object`, () => {
       const json = JSON.stringify(zodOutputFormat(S[n]).schema);

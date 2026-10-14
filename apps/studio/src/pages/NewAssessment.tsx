@@ -29,6 +29,7 @@ export function NewAssessmentPage() {
   const [slugTouched, setSlugTouched] = useState(false);
   const [slugOk, setSlugOk] = useState<boolean | null>(null);
   const [busy, setBusy] = useState(false);
+  const [pdfReport, setPdfReport] = useState(false);
 
   useEffect(() => {
     supabase.from(T.assessments).select('*').eq('is_template', true).then(({ data }) => setTeamTemplates((data as AssessmentRow[]) ?? []));
@@ -80,7 +81,7 @@ export function NewAssessmentPage() {
       const def = choice.make();
       def.meta.title = title.trim();
       if (!def.intro.headline || choice.key === 'blank') def.intro.headline = title.trim();
-      const row = await createAssessment(def, { slug: slugify(slug) });
+      const row = await createAssessment(def, { slug: slugify(slug), extraSettings: pdfReport ? { report: { enabled: true } } : undefined });
       nav(`/assessments/${row.id}`);
     } catch (e) {
       toast.error(e);
@@ -148,6 +149,10 @@ export function NewAssessmentPage() {
                 onBlur={() => setSlug((s) => slugify(s))}
               />
             </Field>
+            <label className="check" style={{ margin: '4px 0 14px' }}>
+              <input type="checkbox" checked={pdfReport} onChange={(e) => setPdfReport(e.target.checked)} />
+              <span>Create an AI-written <b>PDF report</b> for every completed response <span className="small muted">(you can change this later in Settings)</span></span>
+            </label>
             <button className="btn btn-primary" disabled={busy || !title.trim() || !slug || slugOk === false} onClick={create}>
               {busy ? 'Creating…' : 'Create and open editor'}
             </button>

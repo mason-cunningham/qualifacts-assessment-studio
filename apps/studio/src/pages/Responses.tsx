@@ -5,6 +5,7 @@ import { ErrorBox, Loading, useToast } from '../components/ui';
 import { supabase, T } from '../lib/supabase';
 import { exportCsv, exportFileBase, exportXlsx } from '../lib/export';
 import { fmtDate, fullName } from '../lib/format';
+import { reportInProgress } from '../lib/reports';
 import { FOLLOW_UP_LABELS, type AssessmentRow, type FollowUpStatus, type ResponseRow, type StatsRow } from '../lib/types';
 
 const PAGE = 50;
@@ -75,6 +76,18 @@ export function ResponsesPage() {
     setRows((data as unknown as ResponseRow[]) ?? []);
     setCount(count ?? 0);
   }, [buildQuery, page]);
+
+  // Reports are written in the background: refresh just their status while any are in progress
+  useEffect(() => {
+    if (!rows?.some((r) => reportInProgress(r.report_status))) return;
+    const t = window.setInterval(async () => {
+      const ids = (rows ?? []).filter((r) => reportInProgress(r.report_status)).map((r) => r.id);
+      const { data } = await supabase.from(T.responses).select('id,report_status,report_url,report_error,report_generated_at').in('id', ids);
+      const byId = new Map(((data ?? []) as Pick<ResponseRow, 'id' | 'report_status' | 'report_url' | 'report_error' | 'report_generated_at'>[]).map((x) => [x.id, x]));
+      setRows((cur) => cur?.map((r) => (byId.has(r.id) ? { ...r, ...byId.get(r.id)! } : r)) ?? cur);
+    }, 10000);
+    return () => window.clearInterval(t);
+  }, [rows]);
 
   useEffect(() => {
     const t = setTimeout(load, 250);
@@ -175,6 +188,7 @@ export function ResponsesPage() {
                     <th>Tier</th>
                     <th>Source</th>
                     <th>Follow-up</th>
+                    <th>Report</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -189,6 +203,12 @@ export function ResponsesPage() {
                       <td>{r.tier_label ?? '—'}</td>
                       <td className="small">{[r.source, r.rep_code && `rep: ${r.rep_code}`].filter(Boolean).join(' · ') || '—'}</td>
                       <td><span className="pill pill-neutral">{FOLLOW_UP_LABELS[r.follow_up_status]}</span></td>
+                      <td className="small" style={{ whiteSpace: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
+                        {r.report_status === 'ready' && r.report_url ? <a className="btn btn-secondary btn-sm" href={r.report_url} target="_blank" rel="noreferrer">PDF ↓</a>
+                          : reportInProgress(r.report_status) ? <span className="muted">Writing…</span>
+                          : r.report_status === 'failed' ? <span className="error-text" title={r.report_error ?? ''}>Failed</span>
+                          : <span className="muted">—</span>}
+                      </td>
                     </tr>
                   ))}
                 </tbody>

@@ -4,6 +4,7 @@ import { isChoiceType, type Answers, type AssessmentDefinition, type LeadValues 
 import { computeResults } from '@qq/engine';
 import { ResultsView } from '@qq/ui';
 import { TopBar } from '../components/Layout';
+import { ReportCard } from '../components/ReportCard';
 import { ErrorBox, Field, Loading, useToast } from '../components/ui';
 import { supabase, T } from '../lib/supabase';
 import { displayName, useAuth } from '../lib/auth';
@@ -161,6 +162,8 @@ export function ResponseDetailPage() {
                 <div className="small" style={{ marginTop: 8 }}><b>Recommended:</b> {r.recommendations.map((x) => (x.features?.length ? `${x.name} (${x.features.join(', ')})` : x.name)).join('; ')}</div>
               )}
             </div>
+
+            <ReportCard response={r} canEdit={canEdit} reportsEnabled={!!assessment?.settings?.report?.enabled} />
 
             <div className="card">
               <div className="card-title">Follow-up</div>

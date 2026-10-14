@@ -50,6 +50,7 @@ export function GenerateWizardPage() {
   const [notes, setNotes] = useState('');
   const [files, setFiles] = useState<PreparedFile[]>([]);
   const [saveFilesToLibrary, setSaveFilesToLibrary] = useState(false);
+  const [pdfReport, setPdfReport] = useState(false);
   const [uploading, setUploading] = useState(false);
 
   const [phase, setPhase] = useState('');
@@ -186,6 +187,7 @@ export function GenerateWizardPage() {
       const row = await createAssessment(def, {
         slug: await uniqueSlug(def.meta.title),
         extraSettings: {
+          ...(pdfReport ? { report: { enabled: true, knowledgeIds: [...kSel] } } : {}),
           ai_brief: {
             mode: importMode ? 'import' : 'generate',
             brief,
@@ -281,6 +283,10 @@ export function GenerateWizardPage() {
               <Field label="Results button label (optional)"><input className="input" value={brief.primaryCtaLabel} onChange={(e) => setB({ primaryCtaLabel: e.target.value })} placeholder="Talk to our RCM team" /></Field>
               <Field label="Results button URL (optional)"><input className="input" value={brief.primaryCtaUrl} onChange={(e) => setB({ primaryCtaUrl: e.target.value })} placeholder="https://" /></Field>
             </div>
+            <label className="check" style={{ margin: '4px 0 14px' }}>
+              <input type="checkbox" checked={pdfReport} onChange={(e) => setPdfReport(e.target.checked)} />
+              <span>Create an AI-written <b>PDF report</b> for every completed response <span className="small muted">(you can change this later in Settings)</span></span>
+            </label>
             <div className="row-between">
               {importMode ? <button className="btn btn-ghost" onClick={() => setStep('context')}>← Back</button> : <span />}
               {importMode
