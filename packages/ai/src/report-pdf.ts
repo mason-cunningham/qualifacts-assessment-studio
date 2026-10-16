@@ -37,6 +37,24 @@ const C = {
   divider: hex('#DCDAE6'),
 };
 
+/**
+ * Swap typographic punctuation for plain equivalents before drawing. Ekster's en/em dash
+ * glyphs come out as a stray "s" plus broken lines in PDF viewers; hyphens render fine.
+ */
+export function plainText(s: string): string {
+  return String(s ?? '')
+    .replace(/\s*[\u2014\u2015]\s*/g, ' - ') // em dash / horizontal bar -> spaced hyphen
+    .replace(/(\d)\s*[\u2012\u2013]\s*(\d)/g, '$1-$2') // numeric en-dash ranges -> 3-5
+    .replace(/\s*[\u2012\u2013]\s*/g, ' - ')
+    .replace(/[\u2010\u2011\u2212]/g, '-')
+    .replace(/[\u2018\u2019\u201A\u2032]/g, "'")
+    .replace(/[\u201C\u201D\u201E\u2033]/g, '"')
+    .replace(/\u2026/g, '...')
+    .replace(/[\u00A0\u2000-\u200B\u202F\u205F\u3000]/g, ' ')
+    .replace(/[\u200C\u200D\u2060\uFEFF]/g, '')
+    .replace(/[\u2028\u2029\r]/g, '\n');
+}
+
 export function wrapText(text: string, measure: (s: string) => number, maxW: number): string[] {
   const out: string[] = [];
   for (const para of String(text ?? '').split(/\n/)) {
@@ -75,7 +93,10 @@ export async function buildReportPdf(f: ReportFacts, content: ReportContent, ass
   const fReg = await embed(assets.regular, StandardFonts.Helvetica);
   const fBold = await embed(assets.bold, StandardFonts.HelveticaBold);
   const fBlack = await embed(assets.extraBold ?? assets.bold, StandardFonts.HelveticaBold);
-  const t = (s: string) => (fallback ? s.replace(/[^\x20-\x7E\xA0-\xFF‘’“”–—•…€™]/g, '') : s);
+  const t = (s: string) => {
+    const p = plainText(s);
+    return fallback ? p.replace(/[^\n\x20-\x7E\xA0-\xFF•€™]/g, '') : p;
+  };
 
   let logo: PDFImage | null = null;
   if (assets.logoPng?.length) {

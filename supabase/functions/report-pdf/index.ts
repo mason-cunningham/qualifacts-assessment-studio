@@ -48,8 +48,8 @@ function buildReportFacts(args) {
   const name = [clean(r.first_name), clean(r.last_name)].filter(Boolean).join(" ");
   return {
     title: clean(st.title) || `${assessmentTitle} Report`,
-    brandLine: clean(st.brandLine) || (productLine ? `Powered by Qualifacts ${productLine}` : "Qualifacts"),
-    footerLine: `Qualifacts${productLine ? ` ${productLine}` : ""}  \xB7  qualifacts.com`,
+    brandLine: clean(st.brandLine) || "Powered by Qualifacts",
+    footerLine: "Qualifacts  \xB7  qualifacts.com",
     impactLabel: clean(st.impactLabel) || REPORT_DEFAULTS.impactLabel,
     assessmentTitle,
     productLine,
@@ -82,6 +82,7 @@ Rules:
 - For each section you're asked to analyze: one concrete gap tied to their answers, one impact statement, and exactly three tactical recommendations their own staff could start next week with existing people and tools (process changes, checklists, ownership, documentation, training). Never recommend hiring consultants, outside audits or buying unnamed tools.
 - Only mention the Qualifacts solutions listed for this respondent, mainly in the conclusion, and only where they genuinely help. Never force them and never invent products, features, statistics, prices or customer names.
 - Always say "clients" for the people receiving services, never "patients".
+- Use plain punctuation: commas, colons or periods instead of em or en dashes, and write ranges with a hyphen (3-5).
 - Use the assessment's own section names and terms. Don't restate scores the reader can already see unless it adds meaning.`;
 function reportTask(f, guidance) {
   const score = f.score.kind === "points" ? `${f.score.value} out of ${f.score.max} points${f.score.pct != null ? ` (${f.score.pct}%)` : ""}` : f.score.kind === "percent" ? `${f.score.pct}%` : "not scored (survey)";
@@ -154,6 +155,9 @@ var C = {
   card: hex("#F6F4FA"),
   divider: hex("#DCDAE6")
 };
+function plainText(s) {
+  return String(s ?? "").replace(/\s*[\u2014\u2015]\s*/g, " - ").replace(/(\d)\s*[\u2012\u2013]\s*(\d)/g, "$1-$2").replace(/\s*[\u2012\u2013]\s*/g, " - ").replace(/[\u2010\u2011\u2212]/g, "-").replace(/[\u2018\u2019\u201A\u2032]/g, "'").replace(/[\u201C\u201D\u201E\u2033]/g, '"').replace(/\u2026/g, "...").replace(/[\u00A0\u2000-\u200B\u202F\u205F\u3000]/g, " ").replace(/[\u200C\u200D\u2060\uFEFF]/g, "").replace(/[\u2028\u2029\r]/g, "\n");
+}
 function wrapText(text, measure, maxW) {
   const out = [];
   for (const para of String(text ?? "").split(/\n/)) {
@@ -191,7 +195,10 @@ async function buildReportPdf(f, content, assets = {}) {
   const fReg = await embed(assets.regular, StandardFonts.Helvetica);
   const fBold = await embed(assets.bold, StandardFonts.HelveticaBold);
   const fBlack = await embed(assets.extraBold ?? assets.bold, StandardFonts.HelveticaBold);
-  const t = (s) => fallback ? s.replace(/[^\x20-\x7E\xA0-\xFF‘’“”–—•…€™]/g, "") : s;
+  const t = (s) => {
+    const p = plainText(s);
+    return fallback ? p.replace(/[^\n\x20-\x7E\xA0-\xFF•€™]/g, "") : p;
+  };
   let logo = null;
   if (assets.logoPng?.length) {
     try {

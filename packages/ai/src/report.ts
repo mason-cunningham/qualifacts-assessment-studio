@@ -12,7 +12,7 @@ export interface ReportSettings {
   enabled: boolean;
   /** Default: "<assessment title> Report" */
   title?: string;
-  /** Header sub-line. Default: "Powered by Qualifacts <product line>" or "Qualifacts" */
+  /** Header sub-line. Default: "Powered by Qualifacts" */
   brandLine?: string;
   /** Label for the per-section impact paragraph. Default: "Impact" */
   impactLabel?: string;
@@ -129,8 +129,8 @@ export function buildReportFacts(args: {
 
   return {
     title: clean(st.title) || `${assessmentTitle} Report`,
-    brandLine: clean(st.brandLine) || (productLine ? `Powered by Qualifacts ${productLine}` : 'Qualifacts'),
-    footerLine: `Qualifacts${productLine ? ` ${productLine}` : ''}  ·  qualifacts.com`,
+    brandLine: clean(st.brandLine) || 'Powered by Qualifacts',
+    footerLine: 'Qualifacts  ·  qualifacts.com',
     impactLabel: clean(st.impactLabel) || REPORT_DEFAULTS.impactLabel,
     assessmentTitle,
     productLine,
@@ -167,6 +167,7 @@ Rules:
 - For each section you're asked to analyze: one concrete gap tied to their answers, one impact statement, and exactly three tactical recommendations their own staff could start next week with existing people and tools (process changes, checklists, ownership, documentation, training). Never recommend hiring consultants, outside audits or buying unnamed tools.
 - Only mention the Qualifacts solutions listed for this respondent, mainly in the conclusion, and only where they genuinely help. Never force them and never invent products, features, statistics, prices or customer names.
 - Always say "clients" for the people receiving services, never "patients".
+- Use plain punctuation: commas, colons or periods instead of em or en dashes, and write ranges with a hyphen (3-5).
 - Use the assessment's own section names and terms. Don't restate scores the reader can already see unless it adds meaning.`;
 
 export function reportTask(f: ReportFacts, guidance?: string): string {

@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { PDFDocument } from 'pdf-lib';
 import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 import { buildReportFacts, pickSectionsToAnalyze, reportTask, tidyReportContent, type ReportResponseInput } from './report';
-import { buildReportPdf, wrapText } from './report-pdf';
+import { buildReportPdf, plainText, wrapText } from './report-pdf';
 import { ReportSchema, type ReportContent } from './schemas';
 
 const assets = join(__dirname, '../../ui/assets');
@@ -44,7 +44,7 @@ describe('report facts', () => {
   it('takes every label from the assessment and response, not the AI', () => {
     const f = facts();
     expect(f.title).toBe('Eligibility Healthcheck Report');
-    expect(f.brandLine).toBe('Powered by Qualifacts RCMS+');
+    expect(f.brandLine).toBe('Powered by Qualifacts');
     expect(f.impactLabel).toBe('Revenue Impact');
     expect(f.score).toEqual({ kind: 'points', value: 55, max: 60, pct: 92 });
     expect(f.tierColor).toBe('#00B2A9');
@@ -64,7 +64,7 @@ describe('report facts', () => {
     expect(pct.score.kind).toBe('percent');
     const survey = buildReportFacts({ response: { ...response, score_pct: null, score_points: null }, definition: { scoring: { method: 'none' } }, assessment: { title: 'X' } });
     expect(survey.score.kind).toBe('none');
-    expect(survey.brandLine).toBe('Qualifacts');
+    expect(survey.brandLine).toBe('Powered by Qualifacts');
   });
 
   it('prompt lists the sections to analyze and the impact label; tidy keeps only those, 3 recs each', () => {
@@ -86,6 +86,11 @@ describe('report facts', () => {
 });
 
 describe('report PDF', () => {
+  it('replaces typographic dashes and quotes with plain punctuation', () => {
+    expect(plainText('process — who, 3–5 days, “quoted” it’s …')).toBe(`process - who, 3-5 days, "quoted" it's ...`);
+    expect(plainText('early—the ones')).toBe('early - the ones');
+  });
+
   it('wraps long text within the width', () => {
     const lines = wrapText('one two three four five six', (s) => s.length * 10, 100);
     expect(lines.every((l) => l.length * 10 <= 100)).toBe(true);

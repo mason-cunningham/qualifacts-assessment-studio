@@ -19,7 +19,6 @@ export function ReportSettingsCard({ row, def, readOnly, saveSettings }: {
   const [missing, setMissing] = useState<number | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const kIds = new Set(report.knowledgeIds ?? row.settings.ai_brief?.knowledgeIds ?? []);
-  const productLine = def.meta.productLine || row.product_line;
 
   useEffect(() => {
     supabase.from(T.knowledge).select('id,title,kind,topic,product_line,char_count').eq('is_active', true).order('title')
@@ -75,7 +74,7 @@ export function ReportSettingsCard({ row, def, readOnly, saveSettings }: {
               <input className="input" defaultValue={report.title ?? ''} placeholder={`${def.meta.title || row.title} Report`} onBlur={(e) => e.target.value !== (report.title ?? '') && save({ title: e.target.value || undefined })} />
             </Field>
             <Field label="Header line" hint="Small line under the logo.">
-              <input className="input" defaultValue={report.brandLine ?? ''} placeholder={productLine ? `Powered by Qualifacts ${productLine}` : 'Qualifacts'} onBlur={(e) => e.target.value !== (report.brandLine ?? '') && save({ brandLine: e.target.value || undefined })} />
+              <input className="input" defaultValue={report.brandLine ?? ''} placeholder="Powered by Qualifacts" onBlur={(e) => e.target.value !== (report.brandLine ?? '') && save({ brandLine: e.target.value || undefined })} />
             </Field>
             <Field label="Impact heading" hint="Heading for each area's impact paragraph.">
               <input className="input" defaultValue={report.impactLabel ?? ''} placeholder={`${REPORT_DEFAULTS.impactLabel} (e.g. Revenue Impact)`} onBlur={(e) => e.target.value !== (report.impactLabel ?? '') && save({ impactLabel: e.target.value || undefined })} />
